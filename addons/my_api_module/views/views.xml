@@ -1,0 +1,42 @@
+<!-- <odoo>
+  <data>
+
+    <!-- Tree View -->
+    <record id="view_student_tree" model="ir.ui.view">
+      <field name="name">student.tree</field>
+      <field name="model">my_api_module.student</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="Class"/>
+          <field name="Name"/>
+        </tree>
+      </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_student_form" model="ir.ui.view">
+      <field name="name">student.form</field>
+      <field name="model">my_api_module.student</field>
+      <field name="arch" type="xml">
+        <form>
+          <group>
+            <field name="Class"/>
+            <field name="Name"/>
+          </group>
+        </form>
+      </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_student" model="ir.actions.act_window">
+      <field name="name">Students</field>
+      <field name="res_model">my_api_module.student</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_student_root" name="Student Manager"/>
+    <menuitem id="menu_student" name="Students" parent="menu_student_root" action="action_student"/>
+
+  </data>
+</odoo> -->

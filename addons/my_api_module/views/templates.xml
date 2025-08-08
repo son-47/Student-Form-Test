@@ -1,0 +1,9 @@
+<odoo>
+  <template id="my_template" name="My Frontend Page">
+    <t t-call="website.layout">
+      <div class="container">
+        <h1>Hello from My Frontend Page</h1>
+      </div>
+    </t>
+  </template>
+</odoo>
