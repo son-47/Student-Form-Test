@@ -10,6 +10,7 @@ services:
     volumes:
       - odoo-data:/var/lib/odoo
       - ./addons:/mnt/extra-addons
+      - /home/sypher/odoo_project:/mnt/odoo_project
       - ./config:/etc/odoo
     environment:
       - HOST=db-odoo

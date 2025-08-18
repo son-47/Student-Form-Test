@@ -1,110 +1,7 @@
 import re
 from .base_validator import BaseValidator
 class StudentValidator(BaseValidator): 
-    # @staticmethod
-    # def validate_create(data, env):
-    #     errors = []
-    #     code = data.get('code')
-    #     fullname = data.get('fullname')
-    #     dob = data.get('dob')
-    #     sex = data.get('sex')
-    #     email = data.get('email')
-    #     username = data.get('username')
-    #     password = data.get('password')
-    #     facebook = data.get('facebook')
-
-    #     # Kiểm tra bắt buộc
-    #     if not code:
-    #         errors.append("Mã sinh viên là bắt buộc.")
-    #     if not fullname:
-    #         errors.append("Họ tên là bắt buộc.")
-    #     if not dob:
-    #         errors.append("Ngày sinh là bắt buộc.")
-    #     if not sex:
-    #         errors.append("Giới tính là bắt buộc.")
-    #     if not email:
-    #         errors.append("Email là bắt buộc.")
-    #     if not username:
-    #         errors.append("Tên tài khoản là bắt buộc.")
-    #     if not password:
-    #         errors.append("Mật khẩu là bắt buộc.")
-
-    #     # Kiểm tra độ dài
-    #     if code and len(code) > 50:
-    #         errors.append("Mã sinh viên tối đa 50 ký tự.")
-    #     if fullname and len(fullname) > 100:
-    #         errors.append("Họ tên tối đa 100 ký tự.")
-    #     if username and len(username) > 50:
-    #         errors.append("Tên tài khoản tối đa 50 ký tự.")
-
-    #     # Kiểm tra trùng mã sinh viên
-    #     if code and env['my_api_module.student'].search([('code', '=', code)], limit=1):
-    #         errors.append("Mã sinh viên đã tồn tại.")
-    #     # Kiểm tra trùng username
-    #     if username and env['my_api_module.student'].search([('username', '=', username)], limit=1):
-    #         errors.append("Tên tài khoản đã tồn tại.")
-    #     # Kiểm tra trùng email
-    #     if email and env['my_api_module.student'].search([('email', '=', email)], limit=1):
-    #         errors.append("Email đã tồn tại.")
-
-    #     regex_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
-    #     # Kiểm tra định dạng email đơn giản
-    #     if email and not re.fullmatch(regex_email, email):
-    #         errors.append("Email không hợp lệ.")
-
-    #     regex_facebook = r'^(https?:\/\/)?(www\.)?facebook\.com\/[A-Za-z0-9\.]+\/?$'
-        
-    #     if facebook and not re.fullmatch(regex_facebook, facebook):
-    #         errors.append("Link Facebook không hợp lệ.")
-
-    #     return errors
-    # @staticmethod
-    # def validate_update(id, data, env):
-    #     errors = []
-    #     code = data.get('code')
-    #     fullname = data.get('fullname')
-    #     dob = data.get('dob')
-    #     sex = data.get('sex')
-    #     email = data.get('email')
-    #     username = data.get('username')
-    #     password = data.get('password')
-    #     facebook = data.get('facebook')
-
-        
-    #     # Kiểm tra độ dài
-    #     if code and len(str(code)) > 50:
-    #         errors.append("Mã sinh viên tối đa 50 ký tự.")
-    #     if fullname and len(fullname) > 100:
-    #         errors.append("Họ tên tối đa 100 ký tự.")
-    #     if username and len(username) > 50:
-    #         errors.append("Tên tài khoản tối đa 50 ký tự.")
-
-    #     # Kiểm tra trùng mã sinh viên
-    #     if code and env['my_api_module.student'].search([('code', '=', code),('id', '!=', id)], limit=1):
-    #         errors.append("Mã sinh viên đã tồn tại.")
-    #     # Kiểm tra trùng username
-    #     if username and env['my_api_module.student'].search([('username', '=', username),('id', '!=', id)], limit=1):
-    #         errors.append("Tên tài khoản đã tồn tại.")
-    #     # Kiểm tra trùng email
-    #     if email and env['my_api_module.student'].search([('email', '=', email),('id', '!=', id)], limit=1):
-    #         errors.append("Email đã tồn tại.")
-
-    #     regex_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
-    #     # Kiểm tra định dạng email 
-    #     if email and not re.fullmatch(regex_email, email):
-    #         errors.append("Email không hợp lệ.")
-
-    #     regex_facebook = r'^(https?:\/\/)?(www\.)?facebook\.com\/[A-Za-z0-9\.]+\/?$'
-    #     #Kiểm tra định dạng facebook
-    #     if facebook and not re.fullmatch(regex_facebook, facebook):
-    #         errors.append("Link Facebook không hợp lệ.")
-    #     # Kiểm tra định dạng ngày sinh
-    #     regex_dob = r'^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$'
-    #     if dob and not re.match(regex_dob, dob):
-    #         errors.append("Ngày sinh không hợp lệ")
-        
-    #     return errors
-    #     #Kiểm tra định dạng hobbies
+  
 
     def __init__(self, data = None, model = None):
         super().__init__(data, model)
@@ -140,7 +37,117 @@ class StudentValidator(BaseValidator):
         self.data = data
         self.validate_data()
         self.unique_value('code', self.model, id)
-        self.unique_value('username', self.model, id)
-        self.unique_value('email', self.model, id)
+        # self.unique_value('username', self.model, id)
+        # self.unique_value('email', self.model, id)
         return self.get_errors()
         
+    # def validate_import_file(self, file):
+    #     """Validate file import sinh viên - TẬN DỤNG CÁC HÀM CÓ SẴN"""
+    #     self.errors = []  # Reset errors
+        
+    #     # 1. Validate định dạng và nội dung file 
+    #     df = self.validate_file_content(file)
+    #     if df is None:
+    #         return None, []
+        
+    #     # 2. Validate các cột bắt buộc 
+    #     required_columns = ['code', 'fullname', 'email', 'username', 'password','dob', 'sex', 'hobbies']
+    #     if not self.validate_required_columns(df, required_columns):
+    #         return None, []
+        
+    #     # 3. Validate từng dòng dữ liệu 
+    #     # valid_records = self.validate_data_rows(df, self._validate_student_row)
+        
+    #     return df
+    
+    # def validate_update_file(self, file):
+    #     """Validate file update thông tin sinh viên"""
+    #     self.errors = []
+        
+    #     # Validate định dạng và nội dung (SỬ DỤNG HÀM CÓ SẴN)
+    #     df = self.validate_file_content(file)
+    #     if df is None:
+    #         return None
+        
+    #     if len(df) != 1:
+    #         self.add_error("File cập nhật chỉ được chứa đúng 1 dòng dữ liệu.")
+    #         return None
+        
+    #     # Validate dòng đầu tiên (SỬ DỤNG HÀM CÓ SẴN)
+    #     row_data = df.iloc[0].to_dict()
+    #     clean_data = {}
+    #     for k, v in row_data.items():
+    #         if pd.notna(v) and v is not None:
+    #             clean_data[k] = str(v).strip() if isinstance(v, str) else v
+        
+    #     # SỬ DỤNG TRỰC TIẾP CÁC HÀM VALIDATE CÓ SẴN
+    #     temp_data = self.data  # Backup data hiện tại
+    #     self.data = clean_data  # Set data mới để validate
+        
+    #     # Validate từng field bằng các hàm có sẵn
+    #     self._validate_student_fields_update()
+        
+    #     self.data = temp_data  # Restore data cũ
+        
+    #     return clean_data if not self.errors else None
+    
+    # def _validate_student_row(self, row_data, row_number):
+    #     """Validate một dòng dữ liệu sinh viên - TẬN DỤNG CÁC HÀM CÓ SẴN"""
+    #     # Backup data hiện tại
+    #     temp_data = self.data
+    #     temp_errors = self.errors
+        
+    #     # Set data mới để validate
+    #     self.data = row_data
+    #     self.errors = []
+        
+  
+    #     self.constraint_validate()  
+    #     self.validate_data()       
+        
+    #     # Lấy errors của dòng này
+    #     row_errors = self.errors.copy()
+        
+    #     # Restore data và errors ban đầu  
+    #     self.data = temp_data
+    #     self.errors = temp_errors
+        
+    #     return row_errors
+    
+    # def _validate_student_fields_update(self):
+    #     """Validate các field cho update"""
+    #     # Không check required cho update, chỉ check format và unique
+        
+       
+    #     if self.data.get('email'):
+    #         self.email_check('email')
+        
+         
+    #     if self.data.get('dob'):
+    #         self.dob_check('dob')
+        
+        
+    #     if self.data.get('facebook'):
+    #         self.facebook_check('facebook')
+        
+       
+    #     if self.data.get('hobbies'):
+    #         self.hobbies_check('hobbies')
+        
+        
+    #     if self.data.get('code'):
+    #         self.max_length('code', 100)
+    #     if self.data.get('fullname'):
+    #         self.max_length('fullname', 100)
+    #     if self.data.get('username'):
+    #         self.max_length('username', 100)
+    #     if self.data.get('description'):
+    #         self.max_length('description', 100)
+        
+       
+    #     if self.data.get('code'):
+    #         self.unique_value('code', self.model)
+    #     if self.data.get('username'):
+    #         self.unique_value('username', self.model)
+    #     if self.data.get('email'):
+    #         self.unique_value('email', self.model)

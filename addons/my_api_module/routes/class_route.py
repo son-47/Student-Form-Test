@@ -8,10 +8,11 @@ from ..controllers.Class_controllers_test import ClassController
 
 
 class ClassRoute(http.Controller):
+
     @http.route('/tra_class', type='http', auth='public', methods=['GET'], csrf=False)
     def get_all(self, **kw):
         return ClassController().get_all(kw)
-    
+
     @http.route('/tra_class/page/<int:init>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_by_page(self, init, **kw):
         return ClassController().get_by_page(init, kw)
@@ -44,14 +45,14 @@ class ClassRoute(http.Controller):
     def mass_copy(self, **kw):
         return ClassController().mass_copy(kw)
 
-    @http.route('/tra_student/import', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/tra_class/import', type='http', auth='public', methods=['POST'], csrf=False)
     def import_data(self, **kw):
-        return ClassController().import_data('tra_student', **kw)
+        return ClassController().import_data(kw)
 
-    @http.route('/tra_student/export/<int:id>', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/tra_class/export/<int:id>', type='http', auth='public', methods=['GET'], csrf=False)
     def export_by_id(self, id, **kw):
-        return ClassController().export_by_id('tra_student', id, **kw)
+        return ClassController().export_by_id(id, kw)
 
-    @http.route('/tra_student/export', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/tra_class/export', type='http', auth='public', methods=['POST'], csrf=False)
     def mass_export(self, **kw):
-        return ClassController().mass_export('tra_student', **kw)
+        return ClassController().mass_export(kw)

@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 class BaseValidator:
     """
     regex: [] 1 ký tự duy nhất
@@ -84,4 +85,116 @@ class BaseValidator:
             if value and not re.match(regex_hobbies, value):
                 self.add_error("Hobbies không đúng định dạng.")
         
+    def validate_file_format(self, file):
+        """Validate định dạng file"""
+        if not file or not hasattr(file, 'filename') or not file.filename:
+            self.add_error("File không hợp lệ hoặc không có tên.")
+            return False
             
+        filename = file.filename.lower()
+        allowed_extensions = ['.csv', '.xlsx', '.xls']
+        
+        if not any(filename.endswith(ext) for ext in allowed_extensions):
+            self.add_error("Chỉ hỗ trợ file CSV (.csv) hoặc Excel (.xlsx, .xls).")
+            return False
+            
+        return True
+    
+    def validate_file_size(self, file, max_size_mb=10):
+        """Validate kích thước file"""
+        if not file:
+            return False
+            
+        file.seek(0, 2)  # Seek to end
+        size = file.tell()
+        file.seek(0)     # Seek back to start
+        
+        max_size_bytes = max_size_mb * 1024 * 1024
+        if size > max_size_bytes:
+            self.add_error(f"File quá lớn. Kích thước tối đa: {max_size_mb}MB.")
+            return False
+            
+        return True
+    
+    def validate_file_content(self, file):
+        """Validate nội dung file và trả về DataFrame"""
+        if not self.validate_file_format(file) or not self.validate_file_size(file):
+            return None
+            
+        try:
+            filename = file.filename.lower()
+            file.seek(0)
+            
+            if filename.endswith('.csv'):
+                content = file.stream.read().decode('utf-8-sig')
+                df = pd.read_csv(io.StringIO(content))
+            elif filename.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(file.stream)
+            else:
+                self.add_error("Định dạng file không được hỗ trợ.")
+                return None
+                
+            if df.empty:
+                self.add_error("File không chứa dữ liệu.")
+                return None
+                
+            return df
+            
+        except Exception as e:
+            self.add_error(f"Lỗi đọc file: {str(e)}")
+            return None
+    # def validate_data_rows(self, df, row_validator_func=None):
+    #     """Validate từng dòng dữ liệu trong file"""
+    #     if df is None:
+    #         return []
+            
+    #     valid_records = []
+    #     invalid_rows = []
+        
+    #     for index, row in df.iterrows():
+    #         row_data = row.to_dict()
+            
+    #         # Loại bỏ NaN values
+    #         clean_data = {}
+    #         for k, v in row_data.items():
+    #             if pd.notna(v) and v is not None:
+    #                 clean_data[k] = str(v).strip() if isinstance(v, str) else v
+    #             else:
+    #                 clean_data[k] = None
+            
+    #         # Validate từng row nếu có hàm validator
+    #         if row_validator_func:
+    #             row_errors = row_validator_func(clean_data, index + 2)  # +2 vì header ở row 1
+    #             if row_errors:
+    #                 invalid_rows.append({
+    #                     'row': index + 2,
+    #                     'data': clean_data,
+    #                     'errors': row_errors
+    #                 })
+    #                 continue
+            
+    #         valid_records.append(clean_data)
+        
+    #     # Báo lỗi nếu có dòng không hợp lệ
+    #     if invalid_rows:
+    #         error_summary = []
+    #         for invalid in invalid_rows[:5]:  # Chỉ hiển thị 5 lỗi đầu
+    #             error_summary.append(f"Dòng {invalid['row']}: {'; '.join(invalid['errors'])}")
+            
+    #         if len(invalid_rows) > 5:
+    #             error_summary.append(f"... và {len(invalid_rows) - 5} lỗi khác.")
+                
+    #         self.add_error(f"File có {len(invalid_rows)} dòng dữ liệu không hợp lệ: " + ' '.join(error_summary))
+        
+    #     return valid_records
+    # def validate_required_columns(self, df, required_columns):
+    #     """Validate các cột bắt buộc trong file"""
+    #     if df is None:
+    #         return False
+            
+    #     missing_columns = [col for col in required_columns if col not in df.columns]
+    #     if missing_columns:
+    #         self.add_error(f"File thiếu các cột bắt buộc: {', '.join(missing_columns)}.")
+    #         return False
+            
+    #     return True       

@@ -1,10 +1,19 @@
-import re
-from odoo.http import request
+import re, os, glob
+from odoo.http import request,Response, content_disposition
 import json
+from ..helper.filehelper import export_file, import_file
 from ..helper.normalizer import Normalizer
 from ..helper.response_format import responseFormat
 from ..helper.serializer import Serializer
+from ..helper.file_uploader import LocalFileUploader, MinioFileUploader
+from ..helper.upload_config import get_upload_config
+from ..helper.file_processor import ImageFileProcessor
+from datetime import datetime
+from minio import Minio
 import logging
+import pandas as pd
+from datetime import datetime
+            
 _logger = logging.getLogger(__name__)
 
 class BaseController():
@@ -12,7 +21,41 @@ class BaseController():
         self.modelName = modelName
         self.model = request.env[modelName].sudo()
         self.validator = validator
+        
+        self._init_file_uploader()
+        self._init_file_processors()
+        # self._init_file_uploader()
+    def _init_file_processors(self):
+        """Khởi tạo file processors"""
+        entity_type = self._get_entity_type()
+        
+        self.image_processor = ImageFileProcessor(self.file_uploader, entity_type)
+        # self.data_processor = DataFileProcessor(self.file_uploader, entity_type, self.validator)
+    def _init_file_uploader(self):
+        """Khởi tạo file uploader  dựa trên config"""
+        upload_type, config = get_upload_config()
+        
+        if upload_type == "local":
+            self.file_uploader = LocalFileUploader(
+                config['base_dir'], 
+                config['base_url']
+            )
+        elif upload_type == "minio":
+            self.file_uploader = MinioFileUploader(
+                config['endpoint'],
+                config['access_key'],
+                config['secret_key'], 
+                config['bucket'],
+                config['secure']
+            )
+        else:
+            raise ValueError(f"Unsupported upload type: {upload_type}")
 
+    def _get_entity_type(self):
+        """Lấy entity type từ model name"""
+        return self.modelName.split('.')[-1]  # 'student' hoặc 'classes'
+
+    
     @staticmethod
     def encode_hobbies_binary_string_to_bitmask(hobbies_input):
             """
@@ -125,16 +168,41 @@ class BaseController():
   
         try:
             data = kw
-            errors = self.validator.validate_create_data(data)
+            file_data = data.copy()
+            file_data.pop('fattachment', None)
+            errors = self.validator.validate_create_data(file_data)
             if errors:
                 return responseFormat(code="E603", message="Lỗi kiểm tra dữ liệu : " + " ".join(errors))
             if 'hobbies' in data:
-                data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(data['hobbies'])
+                _logger.info(type(data['hobbies']))
+                file_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(data['hobbies'])
                     
-            result = self.model.create(data)
+            result = self.model.create(file_data)
+            _logger.info(f"Created record with ID: {result.id}")
+            #Xử lý file ảnh với ImageProcessor
+            file_info = self.image_processor.process('fattachment', result.id)
+            if file_info:
+                result.write(file_info)
+                _logger.info(f"Image info saved: {file_info}")
+            
             return responseFormat(code=200, data=result.ids)
         except Exception as e:
             return responseFormat(code="E600", message=str(e))
+            # Xử lý file upload sau khi đã có ID
+            # attachment_url, attachment = self._handle_file_upload('fattachment', result.id)
+            
+            # Cập nhật record với thông tin file nếu có
+            
+        #     if attachment_url and attachment:
+        #         result.write({
+        #             'attachment_url': attachment_url,
+        #             'attachment': attachment
+        #         })
+        #         _logger.info(f"File info saved - URL: {attachment_url}, Path: {attachment}")
+            
+        #     return responseFormat(code=200, data=result.ids)
+        # except Exception as e:
+        #     return responseFormat(code="E600", message=str(e))
         
     def get_by_id(self, id, kw):
         """
@@ -181,28 +249,149 @@ class BaseController():
                 - F600: Lỗi không xác định, nếu có lỗi không xác định xảy ra
         """
         try:
-
-            data = kw
-
-            errors = self.validator.validate_update_data(kw, id)
-
-            if errors:
-                return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu : " + " ".join(errors))
+            data = kw.copy()
+            _logger.info(f"DEBUG UPDATE - Request data: {data}")
             
-            if 'hobbies' in data:
-                data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(data['hobbies'])
-                
+            # **1. Xử lý file CSV/Excel với DataProcessor**
+            # data_from_file = self.data_processor.process('file', id, save_file=True)
+            # if data_from_file:
+            #     data.update(data_from_file)
+            #     _logger.info(f"Updated data with file content: {data_from_file}")
+            # _logger.info("Đã PROCESS XONG DATA FILE")
+            # Validation
+            validation_data = data.copy()
+            validation_data.pop('fattachment', None)
+            # validation_data.pop('file', None)
+            _logger.info("KO LỖI")
+            errors = self.validator.validate_update_data(validation_data, id)
+            if errors:
+                return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu", data=errors)
+            _logger.info("KO LỖI 1")
+            if 'hobbies' in validation_data:
+                validation_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(validation_data['hobbies'])
+            _logger.info("KO LỖI 2")    
             result = self.model.browse(id)
-
             if not result.exists():
                 return responseFormat("F603", message="Lỗi kiểm tra dữ liệu : Ban ghi khong ton tai")
+            
+            if self._get_entity_type() == 'student':
+            # **2. Xử lý file ảnh với ImageProcessor**
+                has_new_image = hasattr(request, 'httprequest') and request.httprequest.files and request.httprequest.files.get('fattachment')
+                current_attachment = data.get('attachment', '').strip()
+                _logger.info("BẮT ĐẦU NHẬN UPDATE ẢNH")
+                if has_new_image:
+                    # Upload ảnh mới
+                    self.image_processor.cleanup(id)
+                    file_info = self.image_processor.process('fattachment', id)
+                    if file_info:
+                        validation_data.update(file_info)
+                        _logger.info(f"Image uploaded: {file_info}")
+                        
+                else:
+                    if current_attachment:
+                        _logger.info("Không có thay đổi gì")
+                    else:
+                    # Xóa ảnh và clear attachment
+                        self.image_processor.cleanup(id)
+                        validation_data.update({
+                            'attachment_url': '',
+                            'attachment': ''
+                        })
+                        _logger.info("Cleared attachment fields and removed images")
 
-            result.write(data)
-
-            return responseFormat(code=200, data=result.ids )
+            result.write(validation_data)
+            return responseFormat(code=200, data=result.ids)
+            
         except Exception as e:
             return responseFormat(code="F600", message=str(e))
-        
+        # try:
+        #     data = kw.copy()
+        #     _logger.info(f"DEBUG UPDATE - Request data: {data}")
+            
+        #     # Xử lý file data trước (CSV/Excel) nếu có
+        #     data_from_file = self._process_file_data_update('file', id)
+        #     if data_from_file:
+        #         data.update(data_from_file)
+        #         _logger.info(f"Updated data with file content: {data_from_file}")
+            
+        #     # Loại bỏ file từ data validation
+        #     validation_data = data.copy()
+        #     validation_data.pop('fattachment', None)
+        #     validation_data.pop('file', None)
+            
+        #     errors = self.validator.validate_update_data(validation_data, id)
+        #     _logger.info(f"DEBUG UPDATE - Validation errors: {errors}")
+            
+        #     if errors:
+        #         return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu : " + " ".join(errors))
+            
+        #     if 'hobbies' in validation_data:
+        #         _logger.info(f"DEBUG UPDATE - Encoding hobbies: {validation_data['hobbies']}")
+        #         validation_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(validation_data['hobbies'])
+                
+        #     result = self.model.browse(id)
+        #     if not result.exists():
+        #         return responseFormat("F603", message="Lỗi kiểm tra dữ liệu : Ban ghi khong ton tai")
+
+        #     # **LOGIC XỬ LÝ FILE ATTACHMENT**
+        #     entity_type = self._get_entity_type()
+            
+        #     # Kiểm tra có file upload mới không
+        #     has_new_file = hasattr(request, 'httprequest') and request.httprequest.files and request.httprequest.files.get('fattachment')
+            
+        #     # Kiểm tra attachment hiện tại trong data
+        #     current_attachment = data.get('attachment', '').strip()
+            
+        #     _logger.info(f"DEBUG UPDATE - has_new_file: {has_new_file}, current_attachment: '{current_attachment}'")
+            
+        #     if has_new_file:
+        #         # **TRƯỜNG HỢP 3: fattachment có data => xóa file cũ, upload file mới**
+        #         _logger.info("DEBUG UPDATE - Case 3: Upload new file")
+                
+        #         # Xóa file cũ trước
+        #         self._cleanup_old_files(entity_type, id)
+                
+        #         # Upload file mới
+        #         attachment_url, attachment = self._handle_file_upload('fattachment', id, cleanup_old=False)
+                
+        #         if attachment_url and attachment:
+        #             validation_data.update({
+        #                 'attachment_url': attachment_url,
+        #                 'attachment': attachment
+        #             })
+        #             _logger.info(f"File uploaded - URL: {attachment_url}, Path: {attachment}")
+        #         else:
+        #             _logger.error("Failed to upload new file")
+                    
+        #     else:
+        #         # Không có file upload mới
+        #         if current_attachment:
+        #             # **TRƯỜNG HỢP 1: attachment có tên file, fattachment không có data => giữ nguyên**
+        #             _logger.info("DEBUG UPDATE - Case 1: Keep existing file")
+        #             # Không cần làm gì, giữ nguyên attachment hiện tại
+                    
+        #         else:
+        #             # **TRƯỜNG HỢP 2: attachment rỗng, fattachment không có data => xóa file và set rỗng**
+        #             _logger.info("DEBUG UPDATE - Case 2: Remove existing files and clear attachment")
+                    
+        #             # Xóa file lưu trữ trên server
+        #             self._cleanup_old_files(entity_type, id)
+                    
+        #             # Set attachment thành rỗng
+        #             validation_data.update({
+        #                 'attachment_url': '',
+        #                 'attachment': ''
+        #             })
+        #             _logger.info("Cleared attachment fields and removed files")
+
+        #     # Write data đã được xử lý
+        #     result.write(validation_data)
+        #     _logger.info(f"DEBUG UPDATE - Record {id} updated successfully")
+
+        #     return responseFormat(code=200, data=result.ids)
+        # except Exception as e:
+        #     _logger.error(f"Error in update: {str(e)}")
+        #     return responseFormat(code="F600", message=str(e))
     def destroy(self, id):
         """
             Phương thức này dùng để xóa một bản ghi theo id
@@ -217,24 +406,46 @@ class BaseController():
         """
         try:
             data = self.model.browse(id)
-
             if not data.exists():
                 return responseFormat("G604", message="Không tìm thấy bản ghi")
 
-            is_deleted = False
-
+            # Cleanup tất cả file với cả 2 processors
+            self.image_processor.cleanup(id)
+            # self.data_processor.cleanup(id)
+            
             try:
                 data.unlink()
-                is_deleted = True
+                return responseFormat(code=200, data= id)
             except:
-                is_deleted = False
-            
-            if is_deleted == False:
                 return responseFormat("G605", message="Ban ghi co lien ket khoa ngoai")
 
-            return responseFormat(code=200, data={'id': id})
         except Exception as e:
             return responseFormat(code="G600", message=str(e))
+        # try:
+        #     data = self.model.browse(id)
+
+        #     if not data.exists():
+        #         return responseFormat("G604", message="Không tìm thấy bản ghi")
+
+        #      # Cleanup files trước khi xóa record
+        #     entity_type = self._get_entity_type()
+        #     self._cleanup_old_files(entity_type, id)
+        #     _logger.info(f"Cleaned up files for {entity_type} ID {id}")
+            
+        #     is_deleted = False
+
+        #     try:
+        #         data.unlink()
+        #         is_deleted = True
+        #     except:
+        #         is_deleted = False
+            
+        #     if is_deleted == False:
+        #         return responseFormat("G605", message="Ban ghi co lien ket khoa ngoai")
+
+        #     return responseFormat(code=200, data= id)
+        # except Exception as e:
+        #     return responseFormat(code="G600", message=str(e))
         
     def copy(self, id):
         """
@@ -343,9 +554,158 @@ class BaseController():
             for item in data:
                 if not item.exists():
                     return responseFormat("i604", message="Lỗi các bản ghi không xóa được : Danh sach chua id khong ton tai")
-            for item in data:
-                item.unlink()
+                else:
+                    self.image_processor.cleanup(item.id)
+                    # self.data_processor.cleanup(item.id)
+                    item.unlink()
 
             return responseFormat(200, data=idlist)
         except Exception as e:
             return responseFormat("I600", message=str(e))
+    def export_by_id(self, id, kw):
+        """
+            Phương thức này dùng để xuất dữ liệu của một bản ghi theo id
+            Tham số:
+                - id: id của bản ghi cần xuất
+                - columnlist: danh sách các cột cần lấy dữ liệu, nếu không có sẽ lấy tất cả
+            Kiểu trả về:
+                - file chứa dữ liệu đã được xuất
+            Ngoại lệ:
+                - K604: Lỗi không tìm thấy bản ghi, nếu không tìm thấy nhà cung cấp
+                - K607: Lỗi định dạng cột, nếu columnlist không hợp lệ
+        """
+        try:
+            columnlist = kw.get("columnlist", None)
+
+            errMessage, columnlist = Normalizer.getColumnFromAlias(columnlist, self.modelAlias2Fields)
+            if errMessage:
+                return responseFormat("K607", message=errMessage)
+
+            file_type = kw.get("type", 'csv')
+
+            data = self.model.browse(id)
+            if not data.exists():
+                return responseFormat("K604", message="Ban ghi khong ton tai")
+
+            data = Serializer.serialize(data, columnlist, self.modelFields2Labels)
+            _logger.info(f"Data đầu ra : {data}")
+            return export_file(data, self.modelName, file_type)
+        except Exception as e:
+            return responseFormat("K600", message=str(e))
+
+    def mass_export(self, kw):
+        """
+            Phương thức này dùng để xuất dữ liệu của nhiều bản ghi theo id
+            Tham số:
+                - idlist: danh sách các id của bản ghi cần xuất, nếu không có sẽ lấy tất cả
+                - columnlist: danh sách các cột cần lấy dữ liệu, nếu không có sẽ lấy tất cả
+            Kiểu trả về:
+                - file chứa dữ liệu đã được xuất
+            Ngoại lệ:
+                -L607: Lỗi danh sách columnList
+                -L601: Lỗi định dạng tệp
+                -L602:lỖI danh sách bản ghi không tồn tại
+                - L600: Lỗi không xác định, nếu có lỗi không xác định xảy ra
+        """
+        try:
+            _logger.info(f"in ra dữ liệu : {kw}")
+            idlist = kw.get("idlist", None)
+            if not idlist:
+                return responseFormat("L602", "Danh sach ban ghi khong ton tai")
+
+            idlist = list(map(int, idlist.split(',')))
+
+            columnlist = kw.get("columnlist", None)
+            errMessage, columnlist = Normalizer.getColumnFromAlias(columnlist, self.modelAlias2Fields)
+            if errMessage:
+                return responseFormat("L607", message=errMessage)
+
+            data = list(self.model.browse(idlist))
+
+            if len(data) != len(idlist):
+                return responseFormat("L602", "Danh sach chua ban ghi khong ton tai")
+
+            data = Serializer.serialize(data, columnlist, self.modelFields2Labels)
+            _logger.info(f"Data đầu ra: {data}")
+            
+            type = kw.get("type", "csv")
+
+            return export_file(data, self.modelName, type)
+        except Exception as e:
+            return responseFormat("L600", message=str(e))
+
+    def import_data(self, kw):
+        """
+            Phương thức này dùng để nhập dữ liệu từ file
+            Tham số:
+                - attachment: tệp đính kèm chứa dữ liệu cần nhập
+            Kiểu trả về:
+                - danh sách các id của bản ghi đã được nhập
+            Ngoại lệ:
+                -J601: Lỗi định dạng tệp
+                -J604:  lỗi tệp dữ liệu chưa tải lên
+                -J605: Lỗi không có dữ liệu được thêm mới
+                - J600: Lỗi không xác định, nếu có lỗi không xác định xảy ra
+        """
+        
+        # try:
+        #     attachment = kw.get("attachment", None)
+            
+        #     if not attachment:
+        #         return responseFormat(
+        #             code="J604", 
+        #             message="File không được tải lên",
+        #             data=[]
+        #         )
+
+        #     # Validate file và lấy dữ liệu hợp lệ
+        #     df= self.validator.validate_import_file(attachment)
+            
+        #     if self.validator.get_errors():
+        #         # return responseFormat("J601", "Lỗi validation file: " + " ".join(self.validator.get_errors()))
+        #         return responseFormat(
+        #         code="J601", 
+        #         message="Lỗi định dạng tệp",
+        #         data=self.validator.get_errors()  # Chi tiết lỗi validation file
+        #     )
+        
+            
+            # if not valid_records:
+            #     return responseFormat("J605", "File không chứa dữ liệu hợp lệ")
+            
+            # Tạo records từ dữ liệu đã validate
+        #     created_records = []
+        #     for record_data in valid_records:
+        #         try:
+        #             # Xử lý dữ liệu trước khi tạo
+        #             if 'hobbies' in record_data:
+        #                 record_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(record_data['hobbies'])
+                    
+        #             # Tạo record
+        #             new_record = self.model.create(record_data)
+        #             created_records.append(new_record.id)
+                    
+        #         except Exception as e:
+        #             _logger.error(f"Error creating record {record_data}: {str(e)}")
+        #             continue
+
+        #     return responseFormat(200, data= created_records)
+        # except Exception as e:
+            # return responseFormat("J600", str(e))
+        try: 
+            attachment = kw.get("attachment", None)
+
+            if not attachment:
+                return responseFormat("J604", "Tai tep du lieu khong thanh cong")
+
+            data = import_file(attachment)
+            
+            if not data:
+                return responseFormat("J605", "Khong the doc tep du lieu")
+            
+            self.model.create(data)
+                
+
+            return responseFormat(200, data = data)
+        except Exception as e:
+            return responseFormat("J600", str(e))

@@ -13,8 +13,8 @@ class Serializer():
     
     @staticmethod
     def serialize_1_item(item, columnlist, modelFields2Labels=None):
-            _logger.info(f"DEBUG - item type: {type(item)}")
-            _logger.info(f"DEBUG - item._fields: {item._fields}")
+            # _logger.info(f"DEBUG - item type: {type(item)}")
+            # _logger.info(f"DEBUG - item._fields: {item._fields}")
             
             # Lấy ra tất cả các field của 1 bản ghi, trả về một list các tuple
             field_value_pairs = [(field, getattr(item, field)) for field in item._fields]    
@@ -38,7 +38,7 @@ class Serializer():
             if 'id' in res:
                 id_value = res.pop('id')
                 res = {'id': id_value, **res}
-            _logger.info(f"DEBUG - Final result keys: {list(res.keys())}")
+            # _logger.info(f"DEBUG - Final result keys: {list(res.keys())}")
             return res
     
     @staticmethod

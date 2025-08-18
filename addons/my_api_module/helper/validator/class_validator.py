@@ -1,48 +1,6 @@
 from .base_validator import BaseValidator
 class ClassValidator(BaseValidator):
-    # @staticmethod
-    # def validate_create(data,model):
-    #     errors = []
-    #     code = data.get('code')
-    #     name = data.get('name')
-    #     if not code or not name:
-    #         errors.append("Mã lớp và tên lớp là bắt buộc.")
-
-    #     if code and len(code) > 100:
-    #         errors.append("Mã lớp tối đa 100 ký tự.")
-
-    #     if name and len(name) > 100:
-    #         errors.append("Tên lớp tối đa 100 ký tự.")
-
-    #     # Kiểm tra trùng mã lớp
-    #     if code and model['my_api_module.classes'].search([('code', '=', code)], limit=1):
-    #         errors.append("Mã lớp đã tồn tại.")
-
-    #     return errors
     
-    # @staticmethod
-    # def validate_update(id, data, model):
-    #     errors = []
-    #     code = data.get('code')
-    #     name = data.get('name')
-    #     # class_id = data.get('id')
-
-    #     # if not class_id:
-    #     #     errors.append("Thiếu ID lớp cần cập nhật.")
-
-    #     if code and len(code) > 100:
-    #         errors.append("Mã lớp tối đa 100 ký tự.")
-
-    #     if name and len(name) > 100:
-    #         errors.append("Tên lớp tối đa 100 ký tự.")
-
-    #     # Kiểm tra trùng mã lớp (không tính chính bản ghi đang sửa)
-    #     if code:
-    #         domain = [('code', '=', code), ('id', '!=', id)]
-    #         if model['my_api_module.classes'].search(domain, limit=1):
-    #             errors.append("Mã lớp đã tồn tại.")
-
-    #     return errors
 
     def __init__(self, data=None, model = None):
         super().__init__(data, model)
@@ -68,4 +26,87 @@ class ClassValidator(BaseValidator):
         self.unique_value('code', self.model, id)
         return self.get_errors()
 
-
+    def validate_import_file(self, file):
+        """Validate file import lớp học - TẬN DỤNG CÁC HÀM CÓ SẴN"""
+        self.errors = []
+        
+        # Validate định dạng và nội dung
+        df = self.validate_file_content(file)
+        if df is None:
+            return None, []
+        
+        # Validate cột bắt buộc
+        required_columns = ['code', 'name']
+        if not self.validate_required_columns(df, required_columns):
+            return None, []
+        
+        # Validate từng dòng 
+        # valid_records = self.validate_data_rows(df, self._validate_class_row)
+        
+        return df, valid_records
+    
+    def validate_update_file(self, file):
+        """Validate file update lớp học"""
+        self.errors = []
+        
+        # Validate file
+        df = self.validate_file_content(file)
+        if df is None:
+            return None
+        
+        if len(df) != 1:
+            self.add_error("File cập nhật chỉ được chứa đúng 1 dòng dữ liệu.")
+            return None
+        
+        # Extract data
+        row_data = df.iloc[0].to_dict()
+        clean_data = {}
+        for k, v in row_data.items():
+            if pd.notna(v) and v is not None:
+                clean_data[k] = str(v).strip() if isinstance(v, str) else v
+        
+        # Validate với các hàm có sẵn
+        temp_data = self.data
+        self.data = clean_data
+        
+        self._validate_class_fields_update()
+        
+        self.data = temp_data
+        
+        return clean_data if not self.errors else None
+    
+    def _validate_class_row(self, row_data, row_number):
+        """Validate một dòng lớp học"""
+        # Backup và set data mới
+        temp_data = self.data
+        temp_errors = self.errors
+        
+        self.data = row_data
+        self.errors = []
+        
+        self.constraint_validate()  
+        self.validate_data()        
+        
+        row_errors = self.errors.copy()
+        
+        # Restore
+        self.data = temp_data
+        self.errors = temp_errors
+        
+        return row_errors
+    
+    def _validate_class_fields_update(self):
+        """Validate fields cho update """
+        # Max length 
+        if self.data.get('code'):
+            self.max_length('code', 50)
+        if self.data.get('name'):
+            self.max_length('name', 100)
+        if self.data.get('description'):
+            self.max_length('description', 200)
+        
+        # Unique 
+        if self.data.get('code'):
+            self.unique_value('code', self.model)
+        if self.data.get('name'):
+            self.unique_value('name', self.model)
