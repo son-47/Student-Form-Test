@@ -1,45 +1,78 @@
-import re
 from .base_validator import BaseValidator
-class StudentValidator(BaseValidator): 
-  
 
-    def __init__(self, data = None, model = None):
+class StudentValidator(BaseValidator): 
+    def __init__(self, data=None, model=None):
         super().__init__(data, model)
     
-    def constraint_validate(self):
-        self.required('code')
-        self.required('fullname')
-        self.required('dob')
-        self.required('sex')
-        self.required('email')
-        self.required('username')
-        self.required('password')
+    def _define_rules(self):
+        """Định nghĩa rules khác nhau cho CREATE và UPDATE"""
+        
+        # CREATE RULES - Tất cả field bắt buộc + unique + validation
+        self.define_create_rules({
+            "code": ["required", "unique_value", "max_length:50"],
+            "fullname": ["required", "max_length:100"],
+            "email": ["required", "unique_value", "email"],
+            "username": ["required", "unique_value", "max_length:50"],
+            "password": ["required", "max_length:100"],
+            "dob": ["required", "dob"],
+            "sex": ["required"],
+            "facebook": ["facebook"],
+            "hobbies": ["hobbies"],
+            "description": ["max_length:200"],
+            "hair_color": ["max_length:50"],
+            "address": ["max_length:200"]
+        })
+        
+        # UPDATE RULES - Không required, chỉ validation format + unique cho fields có data
+        self.define_update_rules({
+            "code": ["unique_value", "max_length:50"],  # Không required
+            "fullname": ["max_length:100"],              # Không required
+            "email": ["email"],          # Không required
+            "username": ["max_length:50"], # Không required
+            "password": ["max_length:100"],              # Không required
+            "dob": ["dob"],                              # Không required
+            "sex": [],                                   # Không validation gì
+            "facebook": ["facebook"],
+            "hobbies": ["hobbies"],
+            "description": ["max_length:200"],
+            "hair_color": ["max_length:50"],
+            "address": ["max_length:200"]
+        })
+      
+    # def constraint_validate(self):
+    #     self.required('code')
+    #     self.required('fullname')
+    #     self.required('dob')
+    #     self.required('sex')
+    #     self.required('email')
+    #     self.required('username')
+    #     self.required('password')
     
-    def validate_data(self):
-        self.max_length('code', 100)
-        self.max_length('fullname', 100)
-        self.max_length('username', 100)   
-        self.email_check('email')
-        self.facebook_check('facebook')
-        self.dob_check('dob')
-        self.hobbies_check('hobbies')
+    # def validate_data(self):
+    #     self.max_length('code', 100)
+    #     self.max_length('fullname', 100)
+    #     self.max_length('username', 100)   
+    #     self.email_check('email')
+    #     self.facebook_check('facebook')
+    #     self.dob_check('dob')
+    #     self.hobbies_check('hobbies')
     
-    def validate_create_data(self, data):
-        self.data = data
-        self.constraint_validate()
-        self.validate_data()
-        self.unique_value('code', self.model)
-        self.unique_value('username', self.model)
-        self.unique_value('email', self.model)
-        return self.get_errors()
+    # def validate_create_data(self, data):
+    #     self.data = data
+    #     self.constraint_validate()
+    #     self.validate_data()
+    #     self.unique_value('code', self.model)
+    #     self.unique_value('username', self.model)
+    #     self.unique_value('email', self.model)
+    #     return self.get_errors()
     
-    def validate_update_data(self,data, id):
-        self.data = data
-        self.validate_data()
-        self.unique_value('code', self.model, id)
-        # self.unique_value('username', self.model, id)
-        # self.unique_value('email', self.model, id)
-        return self.get_errors()
+    # def validate_update_data(self,data, id):
+    #     self.data = data
+    #     self.validate_data()
+    #     self.unique_value('code', self.model, id)
+    #     # self.unique_value('username', self.model, id)
+    #     # self.unique_value('email', self.model, id)
+    #     return self.get_errors()
         
     # def validate_import_file(self, file):
     #     """Validate file import sinh viên - TẬN DỤNG CÁC HÀM CÓ SẴN"""

@@ -172,7 +172,12 @@ class BaseController():
             file_data.pop('fattachment', None)
             errors = self.validator.validate_create_data(file_data)
             if errors:
-                return responseFormat(code="E603", message="Lỗi kiểm tra dữ liệu : " + " ".join(errors))
+                return responseFormat(
+                    code="E603", 
+                    message="Lỗi kiểm tra dữ liệu.",
+                    data = errors,
+                    oldData=data,
+                )
             if 'hobbies' in data:
                 _logger.info(type(data['hobbies']))
                 file_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(data['hobbies'])
@@ -250,7 +255,7 @@ class BaseController():
             _logger.info("KO LỖI")
             errors = self.validator.validate_update_data(validation_data, id)
             if errors:
-                return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu", data=errors)
+                return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu", data=errors, oldData = data )
             _logger.info("KO LỖI 1")
             if 'hobbies' in validation_data:
                 validation_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(validation_data['hobbies'])
