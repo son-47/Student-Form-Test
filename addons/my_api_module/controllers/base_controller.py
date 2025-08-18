@@ -188,22 +188,7 @@ class BaseController():
             return responseFormat(code=200, data=result.ids)
         except Exception as e:
             return responseFormat(code="E600", message=str(e))
-            # Xử lý file upload sau khi đã có ID
-            # attachment_url, attachment = self._handle_file_upload('fattachment', result.id)
-            
-            # Cập nhật record với thông tin file nếu có
-            
-        #     if attachment_url and attachment:
-        #         result.write({
-        #             'attachment_url': attachment_url,
-        #             'attachment': attachment
-        #         })
-        #         _logger.info(f"File info saved - URL: {attachment_url}, Path: {attachment}")
-            
-        #     return responseFormat(code=200, data=result.ids)
-        # except Exception as e:
-        #     return responseFormat(code="E600", message=str(e))
-        
+          
     def get_by_id(self, id, kw):
         """
             Phương thức này trả về thông tin theo id
@@ -304,94 +289,7 @@ class BaseController():
             
         except Exception as e:
             return responseFormat(code="F600", message=str(e))
-        # try:
-        #     data = kw.copy()
-        #     _logger.info(f"DEBUG UPDATE - Request data: {data}")
-            
-        #     # Xử lý file data trước (CSV/Excel) nếu có
-        #     data_from_file = self._process_file_data_update('file', id)
-        #     if data_from_file:
-        #         data.update(data_from_file)
-        #         _logger.info(f"Updated data with file content: {data_from_file}")
-            
-        #     # Loại bỏ file từ data validation
-        #     validation_data = data.copy()
-        #     validation_data.pop('fattachment', None)
-        #     validation_data.pop('file', None)
-            
-        #     errors = self.validator.validate_update_data(validation_data, id)
-        #     _logger.info(f"DEBUG UPDATE - Validation errors: {errors}")
-            
-        #     if errors:
-        #         return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu : " + " ".join(errors))
-            
-        #     if 'hobbies' in validation_data:
-        #         _logger.info(f"DEBUG UPDATE - Encoding hobbies: {validation_data['hobbies']}")
-        #         validation_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(validation_data['hobbies'])
-                
-        #     result = self.model.browse(id)
-        #     if not result.exists():
-        #         return responseFormat("F603", message="Lỗi kiểm tra dữ liệu : Ban ghi khong ton tai")
-
-        #     # **LOGIC XỬ LÝ FILE ATTACHMENT**
-        #     entity_type = self._get_entity_type()
-            
-        #     # Kiểm tra có file upload mới không
-        #     has_new_file = hasattr(request, 'httprequest') and request.httprequest.files and request.httprequest.files.get('fattachment')
-            
-        #     # Kiểm tra attachment hiện tại trong data
-        #     current_attachment = data.get('attachment', '').strip()
-            
-        #     _logger.info(f"DEBUG UPDATE - has_new_file: {has_new_file}, current_attachment: '{current_attachment}'")
-            
-        #     if has_new_file:
-        #         # **TRƯỜNG HỢP 3: fattachment có data => xóa file cũ, upload file mới**
-        #         _logger.info("DEBUG UPDATE - Case 3: Upload new file")
-                
-        #         # Xóa file cũ trước
-        #         self._cleanup_old_files(entity_type, id)
-                
-        #         # Upload file mới
-        #         attachment_url, attachment = self._handle_file_upload('fattachment', id, cleanup_old=False)
-                
-        #         if attachment_url and attachment:
-        #             validation_data.update({
-        #                 'attachment_url': attachment_url,
-        #                 'attachment': attachment
-        #             })
-        #             _logger.info(f"File uploaded - URL: {attachment_url}, Path: {attachment}")
-        #         else:
-        #             _logger.error("Failed to upload new file")
-                    
-        #     else:
-        #         # Không có file upload mới
-        #         if current_attachment:
-        #             # **TRƯỜNG HỢP 1: attachment có tên file, fattachment không có data => giữ nguyên**
-        #             _logger.info("DEBUG UPDATE - Case 1: Keep existing file")
-        #             # Không cần làm gì, giữ nguyên attachment hiện tại
-                    
-        #         else:
-        #             # **TRƯỜNG HỢP 2: attachment rỗng, fattachment không có data => xóa file và set rỗng**
-        #             _logger.info("DEBUG UPDATE - Case 2: Remove existing files and clear attachment")
-                    
-        #             # Xóa file lưu trữ trên server
-        #             self._cleanup_old_files(entity_type, id)
-                    
-        #             # Set attachment thành rỗng
-        #             validation_data.update({
-        #                 'attachment_url': '',
-        #                 'attachment': ''
-        #             })
-        #             _logger.info("Cleared attachment fields and removed files")
-
-        #     # Write data đã được xử lý
-        #     result.write(validation_data)
-        #     _logger.info(f"DEBUG UPDATE - Record {id} updated successfully")
-
-        #     return responseFormat(code=200, data=result.ids)
-        # except Exception as e:
-        #     _logger.error(f"Error in update: {str(e)}")
-        #     return responseFormat(code="F600", message=str(e))
+      
     def destroy(self, id):
         """
             Phương thức này dùng để xóa một bản ghi theo id

@@ -1,47 +1,15 @@
-# Python
+# Python build cache
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Odoo
 *.pyc
-*.pyo
-filestore/
-sessions/
+
+# Virtual env
+venv/
+
+# Local uploads, logs, secrets
+addons/my_api_module/static/uploads/
+*.log
+.env
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Logs
-*.log
-
-# Docker volumes
-odoo-data/
-db-data/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Uploads (nếu không muốn commit file uploads)
-addons/my_api_module/static/uploads/
