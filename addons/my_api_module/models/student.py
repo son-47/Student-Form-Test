@@ -51,10 +51,10 @@ class Student(models.Model):
     _description = 'Student'
     _rec_name = 'fullname'
 
-    code = fields.Char(string='Student Code',size = 50,  required=True)            # VD: SV005
-    fullname = fields.Char(string='Full Name',size = 100, required=True)           # VD: Nguyen Van A
-    dob = fields.Date(string='Date of Birth', required = True)                           # Ngày sinh
-    sex = fields.Selection([                                            # Giới tính
+    code = fields.Char(string='Student Code',size = 50,  required=True)            
+    fullname = fields.Char(string='Full Name',size = 100, required=True)           
+    dob = fields.Date(string='Date of Birth', required = True)                          
+    sex = fields.Selection([                                            
         ('2', 'Female'),
         ('1', 'Male')
     ], string='Gender', required=True, default='1')  # Mặc định là Nam
@@ -63,9 +63,9 @@ class Student(models.Model):
     hobbies = fields.Integer(string='Hobbies')                             # Danh sách sở thích (chuỗi 0,1,...)
     hair_color = fields.Char(string='Hair Color')                       # Màu tóc
     email = fields.Char(string='Email', required = True)                                 # Email liên hệ
-    facebook = fields.Char(string='Facebook')                           # Link Facebook
+    facebook = fields.Char(string='Facebook')                                          # Link Facebook
     username = fields.Char(string='Username',required= True)                           # Tên tài khoản
-    password = fields.Char(string='Password', required = True)                           # Mật khẩu 
+    password = fields.Char(string='Password', size =255, required = True)                           # Mật khẩu 
     description = fields.Text(string='Description')   
  # Ghi chú
     attachment = fields.Char(string='Attachment')                     # File đính kèm (ảnh/hồ sơ)
