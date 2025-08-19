@@ -168,15 +168,18 @@ class BaseController():
   
         try:
             data = kw
+            _logger.info(f"Kiểu dữ liệu của dob: {type(kw.get("dob"))}")
             file_data = data.copy()
             file_data.pop('fattachment', None)
             errors = self.validator.validate_create_data(file_data)
-            if errors:
+            if self._get_entity_type() == 'student':
+                self.validator.validate_image_file('fattachment')
+            if self.validator.has_errors():
                 return responseFormat(
                     code="E603", 
                     message="Lỗi kiểm tra dữ liệu.",
                     data = errors,
-                    oldData=data,
+                    oldData= file_data,
                 )
             if 'hobbies' in data:
                 _logger.info(type(data['hobbies']))
@@ -254,8 +257,10 @@ class BaseController():
             # validation_data.pop('file', None)
             _logger.info("KO LỖI")
             errors = self.validator.validate_update_data(validation_data, id)
+            if self._get_entity_type() == 'student':
+                self.validator.validate_image_file('fattachment')
             if errors:
-                return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu", data=errors, oldData = data )
+                return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu", data=errors, oldData = validation_data )
             _logger.info("KO LỖI 1")
             if 'hobbies' in validation_data:
                 validation_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(validation_data['hobbies'])
@@ -596,6 +601,14 @@ class BaseController():
         # except Exception as e:
             # return responseFormat("J600", str(e))
         try: 
+             # Validate import file
+            if not self.validator.validate_import_file('attachment', 10):  # 10MB max
+                return responseFormat(
+                    code="J601", 
+                    message="Loi dinh dang tep.",
+                    errors=self.validator.get_errors()
+                )
+                
             attachment = kw.get("attachment", None)
 
             if not attachment:

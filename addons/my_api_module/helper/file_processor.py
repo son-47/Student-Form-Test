@@ -38,17 +38,17 @@ class ImageFileProcessor(FileProcessor):
         Returns:
             dict: {'attachment_url': '', 'attachment': ''} hoặc {}
         """
-        if not hasattr(request, 'httprequest') or not request.httprequest.files:
-            return {}
+        # if not hasattr(request, 'httprequest') or not request.httprequest.files:
+        #     return {}
             
-        file = request.httprequest.files.get(file_key)
-        if not file or not hasattr(file, 'filename') or not file.filename:
-            return {}
+        # file = request.httprequest.files.get(file_key)
+        # if not file or not hasattr(file, 'filename') or not file.filename:
+        #     return {}
         
-        # Validate file type
-        if not self._is_image_file(file.filename):
-            _logger.warning(f"File {file.filename} is not an image")
-            return {}
+        # # Validate file type
+        # if not self._is_image_file(file.filename):
+        #     _logger.warning(f"File {file.filename} is not an image")
+        #     return {}
         
         try:
             # Upload image
@@ -101,11 +101,11 @@ class ImageFileProcessor(FileProcessor):
         except Exception as e:
             _logger.error(f"Error cleaning up images: {str(e)}")
     
-    def _is_image_file(self, filename):
-        """Kiểm tra file có phải ảnh không"""
-        image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
-        ext = filename.lower().split('.')[-1] if '.' in filename else ''
-        return ext in image_extensions
+    # def _is_image_file(self, filename):
+    #     """Kiểm tra file có phải ảnh không"""
+    #     image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
+    #     ext = filename.lower().split('.')[-1] if '.' in filename else ''
+    #     return ext in image_extensions
 
 # class DataFileProcessor(FileProcessor):
 #     """Xử lý file CSV/Excel - đọc data và có thể lưu trữ để audit"""

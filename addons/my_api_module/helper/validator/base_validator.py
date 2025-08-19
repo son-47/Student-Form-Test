@@ -1,8 +1,9 @@
 import re
 import pandas as pd
 import io
-
-class BaseValidator:
+from abc import ABC, abstractmethod
+from odoo.http import request, Response
+class BaseValidator(ABC):
     def __init__(self, data=None, model=None):
         self.data = data or {}  
         self.errors = {}
@@ -11,6 +12,7 @@ class BaseValidator:
         self.update_rules = {}
         self._define_rules()
 
+    @abstractmethod
     def _define_rules(self):
         """Override trong subclass để định nghĩa rules"""
         pass
@@ -62,28 +64,33 @@ class BaseValidator:
             
         # Apply rule based on type
         if rule_type == 'required':
-            self._check_required(field_name)
+            self.check_required(field_name)
         elif rule_type == 'max_length':
-            self._check_max_length(field_name, int(rule_value))
+            self.check_max_length(field_name, int(rule_value))
         elif rule_type == 'unique_value':
             except_id = int(rule_value) if rule_value else None
-            self._check_unique(field_name, except_id)
+            self.check_unique(field_name, except_id)
         elif rule_type == 'email':
-            self._check_email(field_name)
+            self.check_email(field_name)
         elif rule_type == 'facebook':
-            self._check_facebook(field_name)
+            self.check_facebook(field_name)
         elif rule_type == 'dob':
-            self._check_dob(field_name)
+            self.check_dob(field_name)
         elif rule_type == 'hobbies':
-            self._check_hobbies(field_name)
+            self.check_hobbies(field_name)
+        elif rule_type == 'number':
+            self.check_number(field_name)
+        elif rule_type == 'range_length':
+            min_val, max_val = map(int, rule_value.split(','))
+            self.check_range_length(field_name, min_val, max_val)
 
     # Validation methods (giữ nguyên như cũ)
-    def _check_required(self, field):
+    def check_required(self, field):
         value = self.data.get(field)
         if value is None or str(value).strip() == "":
             self.add_error(field, f"{field} bắt buộc phải có.")
 
-    def _check_max_length(self, field, max_length):
+    def check_max_length(self, field, max_length):
         value = self.data.get(field)
         if value is None:
             return
@@ -92,7 +99,54 @@ class BaseValidator:
         if len(value_str) > max_length:
             self.add_error(field, f"{field} tối đa {max_length} ký tự.")
 
-    def _check_unique(self, field, except_id=None):
+    def check_min_length(self, field, min_length):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value_str =str(value).strip()
+        if len(value_str) < min_length:
+            self.add_error(field, f"{field} tối thiểu {min_length} ký tự")
+
+    def check_range_length(self, field, min_length, max_length):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value_str = str(value).strip()
+        if not (min_length <= len(value_str) <= max_length):
+            self.add_error(field, f"{field} phải có độ dài từ {min_length} đến {max_length} ký tự.")
+    
+    def check_min(self, field, min_value):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value = float(value)
+        if value < min_value:
+            self.add_error(field, f"{field} phải lớn hơn {min_value}.")
+            
+    def check_max(self, field, max_value):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value = float(value)
+        if value > max_value:
+            self.add_error(field, f"{field} phải nhỏ hơn {max_value}.")
+
+    def check_range(self, field, min_value, max_value):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value = float(value)
+        if not (min_value <= value <= max_value):
+            self.add_error(field, f"{field} phải nằm trong khoảng [{min_value}, {max_value}].")
+    
+    def check_number(self, field):
+        value = self.data.get(field)
+        if value is None:
+            return
+        if not isinstance(value, float):
+            self.add_error(field,f"{field} phải là số")
+
+    def check_unique(self, field, except_id=None):
         value = self.data.get(field)
         if value is None or not str(value).strip():
             return 
@@ -104,7 +158,8 @@ class BaseValidator:
         if self.model.search(domain, limit=1):
             self.add_error(field, f"{field} đã tồn tại.")
             
-    def _check_email(self, field):
+            
+    def check_email(self, field):
         value = self.data.get(field, '')
         if not value:
             return
@@ -113,7 +168,7 @@ class BaseValidator:
         if not re.match(regex_email, value):
             self.add_error(field, "Email không đúng định dạng.")
     
-    def _check_facebook(self, field):
+    def check_facebook(self, field):
         value = self.data.get(field, '')
         if not value:
             return
@@ -122,7 +177,7 @@ class BaseValidator:
         if not re.match(regex_facebook, value):
             self.add_error(field, "Facebook không đúng định dạng.")
         
-    def _check_dob(self, field):
+    def check_dob(self, field):
         value = self.data.get(field, '')
         if not value:
             return
@@ -131,7 +186,7 @@ class BaseValidator:
         if not re.match(regex_dob, value):
             self.add_error(field, "Ngày sinh không đúng định dạng.")
             
-    def _check_hobbies(self, field):
+    def check_hobbies(self, field):
         value = self.data.get(field)
         if not value:
             return
@@ -142,6 +197,37 @@ class BaseValidator:
             regex_hobbies = r'^(0|1)(,(0|1)){28}$'
             if not re.match(regex_hobbies, value):
                 self.add_error(field, "Hobbies không đúng định dạng.")
+    
+    # def validate_file_format(self, file):
+    #     """Validate định dạng file"""
+    #     if not file or not hasattr(file, 'filename') or not file.filename:
+    #         self.add_error("File không hợp lệ hoặc không có tên.")
+    #         return False
+            
+    #     filename = file.filename.lower()
+    #     allowed_extensions = ['.csv', '.xlsx', '.xls']
+        
+    #     if not any(filename.endswith(ext) for ext in allowed_extensions):
+    #         self.add_error("Chỉ hỗ trợ file CSV (.csv) hoặc Excel (.xlsx, .xls).")
+    #         return False
+            
+    #     return True
+    
+    # def validate_file_size(self, file, max_size_mb=10):
+    #     """Validate kích thước file"""
+    #     if not file:
+    #         return False
+            
+    #     file.seek(0, 2)  # Seek to end
+    #     size = file.tell()
+    #     file.seek(0)     # Seek back to start
+        
+    #     max_size_bytes = max_size_mb * 1024 * 1024
+    #     if size > max_size_bytes:
+    #         self.add_error(f"File quá lớn. Kích thước tối đa: {max_size_mb}MB.")
+    #         return False
+            
+    #     return True
 
     def has_errors(self):
         return len(self.errors) > 0
@@ -170,6 +256,62 @@ class BaseValidator:
             for i, rule in enumerate(field_rules):
                 if rule == 'unique_value':
                     self.update_rules[field_name][i] = f'unique_value:{entity_id}'
+                    
+    # Thêm vào cuối class BaseValidator, sau method _prepare_update_rules:
+
+    def validate_image_file(self, file_key='fattachment', max_size_mb=5):
+        """Validate file ảnh trong request"""
+        if not hasattr(request, 'httprequest') or not request.httprequest.files:
+            return True  # Không bắt buộc
+            
+        file = request.httprequest.files.get(file_key)
+        if not file or not file.filename:
+            return True  # Không bắt buộc
+            
+        # Check format
+        image_exts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
+        ext = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
+        if ext not in image_exts:
+            self.add_error(file_key, "Chỉ hỗ trợ file ảnh.")
+            return False
+            
+        # Check size
+        file.seek(0, 2)
+        size = file.tell()
+        file.seek(0)
+        if size > max_size_mb * 1024 * 1024:
+            self.add_error(file_key, f"File ảnh quá lớn. Kích thước tối đa: {max_size_mb}MB.")
+            return False
+            
+        return True
+
+    def validate_import_file(self, file_key='attachment', max_size_mb=10):
+        """Validate file import trong request"""
+        if not hasattr(request, 'httprequest') or not request.httprequest.files:
+            self.add_error(file_key, "File không được tải lên.")
+            return False
+            
+        file = request.httprequest.files.get(file_key)
+        if not file or not file.filename:
+            self.add_error(file_key, "File không được tải lên.")
+            return False
+            
+        # Check format
+        data_exts = ['csv', 'xlsx', 'xls']
+        ext = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
+        if ext not in data_exts:
+            self.add_error(file_key, "Chỉ hỗ trợ file CSV hoặc Excel.")
+            return False
+            
+        # Check size
+        file.seek(0, 2)
+        size = file.tell()
+        file.seek(0)
+        if size > max_size_mb * 1024 * 1024:
+            self.add_error(file_key, f"File quá lớn. Kích thước tối đa: {max_size_mb}MB.")
+            return False
+            
+        return True
 # import re
 # import pandas as pd
 # class BaseValidator:
@@ -182,10 +324,10 @@ class BaseValidator:
 #         - required: Kiểm tra trường bắt buộc
 #         - max_length: Kiểm tra độ dài tối đa của trường
 #         -unique_value: Kiểm tra trường bắt buộc
-#         - email_check: Kiểm tra định dạng email
-#         - facebook_check: Kiểm tra định dạng facebook
-#         - dob_check: Kiểm tra định dạng ngày sinh
-#         - hobbies_check: Kiểm tra dữ liệu hobbies
+#         - emailcheck: Kiểm tra định dạng email
+#         - facebookcheck: Kiểm tra định dạng facebook
+#         - dobcheck: Kiểm tra định dạng ngày sinh
+#         - hobbiescheck: Kiểm tra dữ liệu hobbies
 #         - add_error: Thêm lỗi vào danh sách lỗi
 #         - errors: Lưu trữ các lỗi đã xảy ra trong quá trình kiểm tra
 #     """
@@ -232,25 +374,25 @@ class BaseValidator:
 #         if model.search(domain, limit = 1):
 #             self.add_error(f" {field} đã tồn tại.")
             
-#     def email_check(self, field):
+#     def emailcheck(self, field):
 #         value = self.data.get(field, '')
 #         regex_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,7}\b'
 #         if value and not re.match(regex_email, value):
 #             self.add_error("Email không đúng định dạng.")
     
-#     def facebook_check(self, field):
+#     def facebookcheck(self, field):
 #         value = self.data.get(field, '')
 #         regex_facebook = r'^(https?:\/\/)?(www\.)?facebook\.com\/[A-Za-z0-9\.]+\/?$'
 #         if value and not re.match(regex_facebook, value):
 #             self.add_error("Facebook không đúng định dạng.")
         
-#     def dob_check(self, field):
+#     def dobcheck(self, field):
 #         value = self.data.get(field, '')
 #         regex_dob = r'^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$'
 #         if value  and not re.match(regex_dob, value):
 #             self.add_error("Ngày sinh không đúng định dạng.")
             
-#     def hobbies_check(self, field):
+#     def hobbiescheck(self, field):
 #         value = self.data.get(field)
 #         if not isinstance(value, str) or len(value) != 57:
 #             self.add_error("Hobbies phải là ký tự có độ dài 57.")
@@ -259,36 +401,7 @@ class BaseValidator:
 #             if value and not re.match(regex_hobbies, value):
 #                 self.add_error("Hobbies không đúng định dạng.")
         
-#     def validate_file_format(self, file):
-#         """Validate định dạng file"""
-#         if not file or not hasattr(file, 'filename') or not file.filename:
-#             self.add_error("File không hợp lệ hoặc không có tên.")
-#             return False
-            
-#         filename = file.filename.lower()
-#         allowed_extensions = ['.csv', '.xlsx', '.xls']
-        
-#         if not any(filename.endswith(ext) for ext in allowed_extensions):
-#             self.add_error("Chỉ hỗ trợ file CSV (.csv) hoặc Excel (.xlsx, .xls).")
-#             return False
-            
-#         return True
-    
-#     def validate_file_size(self, file, max_size_mb=10):
-#         """Validate kích thước file"""
-#         if not file:
-#             return False
-            
-#         file.seek(0, 2)  # Seek to end
-#         size = file.tell()
-#         file.seek(0)     # Seek back to start
-        
-#         max_size_bytes = max_size_mb * 1024 * 1024
-#         if size > max_size_bytes:
-#             self.add_error(f"File quá lớn. Kích thước tối đa: {max_size_mb}MB.")
-#             return False
-            
-#         return True
+   
     
 #     def validate_file_content(self, file):
 #         """Validate nội dung file và trả về DataFrame"""

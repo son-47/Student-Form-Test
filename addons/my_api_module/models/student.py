@@ -65,7 +65,7 @@ class Student(models.Model):
     email = fields.Char(string='Email', required = True)                                 # Email liên hệ
     facebook = fields.Char(string='Facebook')                           # Link Facebook
     username = fields.Char(string='Username',required= True)                           # Tên tài khoản
-    password = fields.Char(string='Password', required = True)                           # Mật khẩu (khuyên dùng hash)
+    password = fields.Char(string='Password', required = True)                           # Mật khẩu 
     description = fields.Text(string='Description')   
  # Ghi chú
     attachment = fields.Char(string='Attachment')                     # File đính kèm (ảnh/hồ sơ)

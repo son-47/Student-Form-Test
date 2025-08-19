@@ -7,31 +7,31 @@ class StudentValidator(BaseValidator):
     def _define_rules(self):
         """Định nghĩa rules khác nhau cho CREATE và UPDATE"""
         
-        # CREATE RULES - Tất cả field bắt buộc + unique + validation
+        # CREATE RULES 
         self.define_create_rules({
-            "code": ["required", "unique_value", "max_length:50"],
-            "fullname": ["required", "max_length:100"],
-            "email": ["required", "unique_value", "email"],
-            "username": ["required", "unique_value", "max_length:50"],
-            "password": ["required", "max_length:100"],
+            "code": ["required", "unique_value", "range_length:3,50"],
+            "fullname": ["required", "range_length:3,50"],
+            "email": ["required", "unique_value", "email", "max_length:200"],
+            "username": ["required", "unique_value", "range_length:4,50"],
+            "password": ["required", "range_length:8,50"],
             "dob": ["required", "dob"],
             "sex": ["required"],
             "facebook": ["facebook"],
             "hobbies": ["hobbies"],
             "description": ["max_length:200"],
             "hair_color": ["max_length:50"],
-            "address": ["max_length:200"]
+            "address": ["max_length:200"],
+            "fattachment":["image", "max_size:"]
         })
         
-        # UPDATE RULES - Không required, chỉ validation format + unique cho fields có data
+        # UPDATE RULES 
         self.define_update_rules({
-            "code": ["unique_value", "max_length:50"],  # Không required
-            "fullname": ["max_length:100"],              # Không required
-            "email": ["email"],          # Không required
-            "username": ["max_length:50"], # Không required
-            "password": ["max_length:100"],              # Không required
-            "dob": ["dob"],                              # Không required
-            "sex": [],                                   # Không validation gì
+            "code": ["unique_value", "range_length:3,50"],  
+            "fullname": ["range_length:3,50"],          
+            "email": ["email"],        
+            "username": ["range_length:4,50"], 
+            "password": ["range_length:8,50"],            
+            "dob": ["dob"],                                                              
             "facebook": ["facebook"],
             "hobbies": ["hobbies"],
             "description": ["max_length:200"],

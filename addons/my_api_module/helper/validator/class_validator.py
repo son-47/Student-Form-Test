@@ -9,15 +9,15 @@ class ClassValidator(BaseValidator):
         
         # CREATE RULES - Tất cả field bắt buộc
         self.define_create_rules({
-            "code": ["required", "unique_value", "max_length:50"],
-            "name": ["required", "unique_value", "max_length:100"],
+            "code": ["required", "unique_value", "range_length:3,50"],
+            "name": ["required", "unique_value", "range_length:3,50"],
             "description": ["max_length:200"]
         })
         
         # UPDATE RULES - Không required, chỉ validation
         self.define_update_rules({
-            "code": ["unique_value", "max_length:50"],    # Không required
-            "name": ["unique_value", "max_length:100"],   # Không required  
+            "code": ["unique_value", "range_length:3,50"],  
+            "name": ["unique_value", "range_length:3,50"],   
             "description": ["max_length:200"]
         })
         
