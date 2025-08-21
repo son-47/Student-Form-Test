@@ -25,8 +25,8 @@ class StudentAlias2Fields(Enum):
 
 
 class StudentFields2Labels(Enum):
-    id = "ID"
-    code = "Ma hoc Sinh"
+    # id = "ID"
+    code = "Ma hoc sinh"
     fullname = "Ten hoc sinh"
     dob = "Ngay sinh"
     sex = "Gioi tinh"
@@ -52,21 +52,21 @@ class Student(models.Model):
     _rec_name = 'fullname'
 
     code = fields.Char(string='Student Code',size = 50,  required=True)            
-    fullname = fields.Char(string='Full Name',size = 100, required=True)           
+    fullname = fields.Char(string='Full Name',size = 50, required=True)           
     dob = fields.Date(string='Date of Birth', required = True)                          
     sex = fields.Selection([                                            
         ('2', 'Female'),
         ('1', 'Male')
     ], string='Gender', required=True, default='1')  # Mặc định là Nam
-    homecity = fields.Char(string='Hometown')                           # Tỉnh thành
-    address = fields.Char(string='Address')                             # Địa chỉ chi tiết
+    homecity = fields.Char(string='Hometown',size=200)                           # Tỉnh thành
+    address = fields.Char(string='Address', size = 200)                             # Địa chỉ chi tiết
     hobbies = fields.Integer(string='Hobbies')                             # Danh sách sở thích (chuỗi 0,1,...)
-    hair_color = fields.Char(string='Hair Color')                       # Màu tóc
-    email = fields.Char(string='Email', required = True)                                 # Email liên hệ
+    hair_color = fields.Char(string='Hair Color', size = 50)                       # Màu tóc
+    email = fields.Char(string='Email',size = 200, required = True)                                 # Email liên hệ
     facebook = fields.Char(string='Facebook')                                          # Link Facebook
     username = fields.Char(string='Username',required= True)                           # Tên tài khoản
-    password = fields.Char(string='Password', size =255, required = True)                           # Mật khẩu 
-    description = fields.Text(string='Description')   
+    password = fields.Char(string='Password', size = 255, required = True)                           # Mật khẩu 
+    description = fields.Text(string='Description', size = 200)   
  # Ghi chú
     attachment = fields.Char(string='Attachment')                     # File đính kèm (ảnh/hồ sơ)
     attachment_url = fields.Char(string='Attachment URL')  # URL của file đính kèm

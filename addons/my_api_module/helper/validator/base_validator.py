@@ -10,31 +10,34 @@ class BaseValidator(ABC):
         self.model = model
         self.create_rules = {}
         self.update_rules = {}
-        self._define_rules()
+        self.define_rules()
 
     @abstractmethod
-    def _define_rules(self):
-        """Override trong subclass để định nghĩa rules"""
+    def define_rules(self):
+        """định nghĩa rules"""
         pass
 
     def define_create_rules(self, rules):
-        """Định nghĩa rules cho CREATE operation"""
+        """Định nghĩa rules cho CREATE """
         self.create_rules = rules
 
     def define_update_rules(self, rules):
-        """Định nghĩa rules cho UPDATE operation"""
+        """Định nghĩa rules cho UPDATE """
         self.update_rules = rules
 
     def get_errors(self):
         return self.errors
     
-    def clear_errors(self):
-        self.errors = {}
+    # def clear_errors(self):
+    #     self.errors = {}
         
     def add_error(self, field, message):
         if field not in self.errors:
             self.errors[field] = []
         self.errors[field].append(message)
+    
+    def has_errors(self):
+        return len(self.errors) > 0
 
     def validate_with_rules(self, rules, fields_to_validate=None):
         """Validate với rules được chỉ định"""
@@ -46,23 +49,23 @@ class BaseValidator(ABC):
         
         for field_name in fields_to_validate:
             if field_name in rules:
-                self._validate_field(field_name, rules[field_name])
+                self.validate_field(field_name, rules[field_name])
 
-    def _validate_field(self, field_name, field_rules):
+    def validate_field(self, field_name, field_rules):
         """Validate một field theo rules"""
         for rule in field_rules:
-            self._apply_rule(field_name, rule)
+            self.apply_rule(field_name, rule)
 
-    def _apply_rule(self, field_name, rule):
+    def apply_rule(self, field_name, rule):
         """Apply một rule cụ thể"""
-        # Parse rule string
+        # Tách lấy rule_type, rule_value
         if ':' in rule:
             rule_type, rule_value = rule.split(':', 1)
         else:
             rule_type = rule
             rule_value = None
             
-        # Apply rule based on type
+        # Apply rule dựa vào type
         if rule_type == 'required':
             self.check_required(field_name)
         elif rule_type == 'max_length':
@@ -84,7 +87,7 @@ class BaseValidator(ABC):
             min_val, max_val = map(int, rule_value.split(','))
             self.check_range_length(field_name, min_val, max_val)
 
-    # Validation methods (giữ nguyên như cũ)
+    # Validation methods
     def check_required(self, field):
         value = self.data.get(field)
         if value is None or str(value).strip() == "":
@@ -188,9 +191,9 @@ class BaseValidator(ABC):
             
     def check_hobbies(self, field):
         value = self.data.get(field)
-        if not value:
+        if not value :
             return
-            
+                
         if not isinstance(value, str) or len(value) != 57:
             self.add_error(field, "Hobbies phải là ký tự có độ dài 57.")
         else:
@@ -198,39 +201,6 @@ class BaseValidator(ABC):
             if not re.match(regex_hobbies, value):
                 self.add_error(field, "Hobbies không đúng định dạng.")
     
-    # def validate_file_format(self, file):
-    #     """Validate định dạng file"""
-    #     if not file or not hasattr(file, 'filename') or not file.filename:
-    #         self.add_error("File không hợp lệ hoặc không có tên.")
-    #         return False
-            
-    #     filename = file.filename.lower()
-    #     allowed_extensions = ['.csv', '.xlsx', '.xls']
-        
-    #     if not any(filename.endswith(ext) for ext in allowed_extensions):
-    #         self.add_error("Chỉ hỗ trợ file CSV (.csv) hoặc Excel (.xlsx, .xls).")
-    #         return False
-            
-    #     return True
-    
-    # def validate_file_size(self, file, max_size_mb=10):
-    #     """Validate kích thước file"""
-    #     if not file:
-    #         return False
-            
-    #     file.seek(0, 2)  # Seek to end
-    #     size = file.tell()
-    #     file.seek(0)     # Seek back to start
-        
-    #     max_size_bytes = max_size_mb * 1024 * 1024
-    #     if size > max_size_bytes:
-    #         self.add_error(f"File quá lớn. Kích thước tối đa: {max_size_mb}MB.")
-    #         return False
-            
-    #     return True
-
-    def has_errors(self):
-        return len(self.errors) > 0
 
     def validate_create_data(self, data):
         """Validate cho CREATE - tất cả fields với create_rules"""
@@ -243,21 +213,22 @@ class BaseValidator(ABC):
         self.data = data
         
         # Update unique_value rules với except_id
-        self._prepare_update_rules(entity_id)
+        self.prepare_update_rules(entity_id)
         
         # Chỉ validate fields có trong data
         fields_to_validate = data.keys()
         self.validate_with_rules(self.update_rules, fields_to_validate)
         return self.get_errors()
 
-    def _prepare_update_rules(self, entity_id):
-        """Chuẩn bị update rules với except_id cho unique validation"""
+    
+    def prepare_update_rules(self, entity_id):
+        """Chuẩn bị update rules với id được gọi cho unique validation"""
         for field_name, field_rules in self.update_rules.items():
             for i, rule in enumerate(field_rules):
                 if rule == 'unique_value':
                     self.update_rules[field_name][i] = f'unique_value:{entity_id}'
+                       
                     
-    # Thêm vào cuối class BaseValidator, sau method _prepare_update_rules:
 
     def validate_image_file(self, file_key='fattachment', max_size_mb=5):
         """Validate file ảnh trong request"""
@@ -275,7 +246,7 @@ class BaseValidator(ABC):
             self.add_error(file_key, "Chỉ hỗ trợ file ảnh.")
             return False
             
-        # Check size
+        # Check size, đưa con trỏ về cuối file
         file.seek(0, 2)
         size = file.tell()
         file.seek(0)
@@ -312,6 +283,39 @@ class BaseValidator(ABC):
             return False
             
         return True
+    
+    # def validate_file_format(self, file):
+    #     """Validate định dạng file"""
+    #     if not file or not hasattr(file, 'filename') or not file.filename:
+    #         self.add_error("File không hợp lệ hoặc không có tên.")
+    #         return False
+            
+    #     filename = file.filename.lower()
+    #     allowed_extensions = ['.csv', '.xlsx', '.xls']
+        
+    #     if not any(filename.endswith(ext) for ext in allowed_extensions):
+    #         self.add_error("Chỉ hỗ trợ file CSV (.csv) hoặc Excel (.xlsx, .xls).")
+    #         return False
+            
+    #     return True
+    
+    # def validate_file_size(self, file, max_size_mb=10):
+    #     """Validate kích thước file"""
+    #     if not file:
+    #         return False
+            
+    #     file.seek(0, 2)  # Seek to end
+    #     size = file.tell()
+    #     file.seek(0)     # Seek back to start
+        
+    #     max_size_bytes = max_size_mb * 1024 * 1024
+    #     if size > max_size_bytes:
+    #         self.add_error(f"File quá lớn. Kích thước tối đa: {max_size_mb}MB.")
+    #         return False
+            
+    #     return True
+
+   
 # import re
 # import pandas as pd
 # class BaseValidator:

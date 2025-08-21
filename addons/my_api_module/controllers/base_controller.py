@@ -8,6 +8,7 @@ from ..helper.serializer import Serializer
 from ..helper.file_uploader import LocalFileUploader, MinioFileUploader
 from ..helper.upload_config import get_upload_config
 from ..helper.file_processor import ImageFileProcessor
+from ..helper.password_processor import PasswordHelper
 from datetime import datetime
 from minio import Minio
 import logging
@@ -63,7 +64,8 @@ class BaseController():
             - If input is a binary string (e.g., '0,1,1,0,...'), validate and convert to bitmask.
             - If input is a comma-separated list of hobbies (e.g., 'Badminton,Basketball'), convert to binary string then to bitmask.
             """
-     
+            if not hobbies_input or hobbies_input.strip() == "":
+                return 0   # Chuỗi rỗng => bitmask = 0
             bits = list(map(int, hobbies_input.strip().split(',')))
             bitmask = 0 
             for i, value in enumerate(bits):
@@ -81,8 +83,7 @@ class BaseController():
             _logger.info("BAT DAU CHẠY ")
             data = Serializer.serialize(data, columnlist, self.modelFields2Labels)
 
-            return responseFormat(code=200, data=data)
-        
+            return responseFormat(code=200,message="Thành công", data=data)
         except Exception as e:
             return responseFormat(code="B600", message=str(e))
         
@@ -181,9 +182,12 @@ class BaseController():
                     data = errors,
                     oldData= file_data,
                 )
-            if 'hobbies' in data:
-                _logger.info(type(data['hobbies']))
-                file_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(data['hobbies'])
+                #Hash password trước khi lưu (student)
+            if self._get_entity_type() == 'student':
+                file_data['password'] = PasswordHelper.hash_password(file_data.get('password'))
+                if 'hobbies' in data:
+                    _logger.info(type(data['hobbies']))
+                    file_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(data['hobbies'])
                     
             result = self.model.create(file_data)
             _logger.info(f"Created record with ID: {result.id}")
@@ -261,10 +265,15 @@ class BaseController():
                 self.validator.validate_image_file('fattachment')
             if errors:
                 return responseFormat(code="F603", message="Lỗi kiểm tra dữ liệu", data=errors, oldData = validation_data )
-            _logger.info("KO LỖI 1")
+            #Hash password 
+            if (self._get_entity_type() == 'student' and 'password' in validation_data):
+                # if not (PasswordHelper.is_hashed(validation_data.get('password'))):
+                validation_data['password'] = PasswordHelper.hash_password(validation_data['password'])
+                # _logger.info(f"Đã hash password: {validation_data['password']}")
+
             if 'hobbies' in validation_data:
                 validation_data['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(validation_data['hobbies'])
-            _logger.info("KO LỖI 2")    
+            
             result = self.model.browse(id)
             if not result.exists():
                 return responseFormat("F603", message="Lỗi kiểm tra dữ liệu : Ban ghi khong ton tai")
@@ -608,20 +617,43 @@ class BaseController():
                     message="Loi dinh dang tep.",
                     errors=self.validator.get_errors()
                 )
-                
+            
             attachment = kw.get("attachment", None)
 
             if not attachment:
                 return responseFormat("J604", "Tai tep du lieu khong thanh cong")
 
             data = import_file(attachment)
-            
+            _logger.info(f"DATA ĐẦU VÀO : {data}")
             if not data:
                 return responseFormat("J605", "Khong the doc tep du lieu")
+            errMessage, data = Normalizer.getModelDataFromLabels(data, self.modelFields2Labels)
+            if errMessage:
+                return responseFormat(
+                    code="J600", 
+                    message=f"Lỗi định dạng dữ liệu: {errMessage}",
+                )
             
-            self.model.create(data)
-                
-
-            return responseFormat(200, data = data)
+            
+            if self._get_entity_type() == 'student':
+                for record in data:
+                    record['sex'] = str(record.get('sex'))
+                    if 'password' in record and record['password']:
+                        record['password'] = PasswordHelper.hash_password(record['password'])
+                    if 'hobbies' in record:
+                        record['hobbies'] = BaseController.encode_hobbies_binary_string_to_bitmask(record['hobbies'])
+            _logger.info(f"Data after processing: {data}")
+            created_records = []
+            for record_data in data:
+                try:
+                    new_record = self.model.create(record_data)
+                    created_records.append(new_record.id)
+                except Exception as e:
+                    _logger.error(f"Error creating record {record_data}: {str(e)}")
+                    continue
+            
+            # self.model.create(data)
+            _logger.info(f"Created records: {created_records}")
+            return responseFormat(200, data = created_records)
         except Exception as e:
             return responseFormat("J600", str(e))

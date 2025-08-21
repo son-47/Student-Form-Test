@@ -4,7 +4,7 @@ class StudentValidator(BaseValidator):
     def __init__(self, data=None, model=None):
         super().__init__(data, model)
     
-    def _define_rules(self):
+    def define_rules(self):
         """Định nghĩa rules khác nhau cho CREATE và UPDATE"""
         
         # CREATE RULES 
@@ -17,6 +17,7 @@ class StudentValidator(BaseValidator):
             "dob": ["required", "dob"],
             "sex": ["required"],
             "facebook": ["facebook"],
+            "homecity": ["max_length:200"],
             "hobbies": ["hobbies"],
             "description": ["max_length:200"],
             "hair_color": ["max_length:50"],

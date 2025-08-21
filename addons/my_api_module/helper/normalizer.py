@@ -1,3 +1,5 @@
+import logging
+_logger = logging.getLogger(__name__)
 class Normalizer():
     def __init__(self):
         pass
@@ -51,7 +53,7 @@ class Normalizer():
                 return "Cú pháp order không hợp lệ. Thiếu dấu ':'", None
 
             alias, direction = part.split(":")
-            errMessage, field = Normalizer.GetColumnFromAlias(alias.strip(), ModelAlias2Fields)
+            errMessage, field = Normalizer.getColumnFromAlias(alias.strip(), ModelAlias2Fields)
             if errMessage:
                 return f"Alias không hợp lệ: {alias}", None
 
@@ -78,4 +80,26 @@ class Normalizer():
 
         return None, cleaned_data
     
-            
+    
+    @staticmethod
+    def getModelDataFromLabels(data, modelFields2Labels):
+        def helper(item, labels2Fields):
+            res = {}
+            for field, value in item.items():
+                if field not in labels2Fields.keys():
+                    return "Danh sach cot khong hop le", None
+                res[labels2Fields[field]] = value
+            return None, res
+        
+        labelList = [e.value for e in modelFields2Labels]
+        fieldList = [e.name for e in modelFields2Labels]
+        labels2Fields = dict(zip(labelList, fieldList))
+        _logger.info(f"Field trả về là :{labels2Fields}")
+        cleaned_data = []
+        for item in list(data):
+            err, valid_item = helper(item, labels2Fields)
+            if err:
+                return err, None
+            cleaned_data.append(valid_item)
+
+        return None, cleaned_data

@@ -26,8 +26,8 @@ class Course(models.Model):
     _description = 'Class'
     _rec_name = 'name'
 
-    code = fields.Char(string='Course Code',size = 100, default = None, required=True, help = "Mã lớp học, ví dụ: LOP001")
-    name = fields.Char(string='Course Name',size = 100, default = None, required=True, help = "Tên lớp học, ví dụ: Lớp 10A1")
+    code = fields.Char(string='Course Code',size = 50, default = None, required=True, help = "Mã lớp học, ví dụ: LOP001")
+    name = fields.Char(string='Course Name',size = 50, default = None, required=True, help = "Tên lớp học, ví dụ: Lớp 10A1")
     description = fields.Text(string='Description', required = False)
     # write_date = fields.Datetime(string='Last Updated') 
 

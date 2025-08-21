@@ -32,6 +32,8 @@ class Serializer():
                         res[field] = Serializer.decode_bitmask_to_hobbies_string(value)
                     elif value in [None, False]:
                         res[field] = ""
+                    elif field == 'password':
+                        res[field] = "********"
                     else:
                         res[field] = value
                         

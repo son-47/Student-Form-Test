@@ -1,5 +1,5 @@
 UPLOAD_CONFIG = {
-    "type": "minio",  # "local" hoặc "minio"
+    "type": "local",  # "local" hoặc "minio"
     
     "local": {
         "base_dir": "/mnt/odoo_project/addons/my_api_module/static/uploads",
