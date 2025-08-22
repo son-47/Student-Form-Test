@@ -26,19 +26,19 @@ class StudentValidator(BaseValidator):
         })
         
         # UPDATE RULES 
-        self.define_update_rules({
-            "code": ["unique_value", "range_length:3,50"],  
-            "fullname": ["range_length:3,50"],          
-            "email": ["email"],        
-            "username": ["range_length:4,50"], 
-            "password": ["range_length:8,50"],            
-            "dob": ["dob"],                                                              
-            "facebook": ["facebook"],
-            "hobbies": ["hobbies"],
-            "description": ["max_length:200"],
-            "hair_color": ["max_length:50"],
-            "address": ["max_length:200"]
-        })
+        # self.define_update_rules({
+        #     "code": ["unique_value", "range_length:3,50"],  
+        #     "fullname": ["range_length:3,50"],          
+        #     "email": ["email"],        
+        #     "username": ["range_length:4,50"], 
+        #     "password": ["range_length:8,50"],            
+        #     "dob": ["dob"],                                                              
+        #     "facebook": ["facebook"],
+        #     "hobbies": ["hobbies"],
+        #     "description": ["max_length:200"],
+        #     "hair_color": ["max_length:50"],
+        #     "address": ["max_length:200"]
+        # })
       
     # def constraint_validate(self):
     #     self.required('code')

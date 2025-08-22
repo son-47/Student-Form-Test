@@ -199,7 +199,7 @@ class BaseValidator(ABC):
         else:
             regex_hobbies = r'^(0|1)(,(0|1)){28}$'
             if not re.match(regex_hobbies, value):
-                self.add_error(field, "Hobbies không đúng định dạng.")
+                self.add_error(field, " không đúng định dạng.")
     
 
     def validate_create_data(self, data):

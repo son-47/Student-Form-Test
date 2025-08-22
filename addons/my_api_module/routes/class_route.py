@@ -2,6 +2,7 @@
 import json
 from odoo import http
 from odoo.http import request
+from ..middlewares.verify_token import verify_token
 
 # local package
 from ..controllers.Class_controllers_test import ClassController
@@ -12,6 +13,7 @@ class ClassRoute(http.Controller):
     @http.route('/tra_class', type='http', auth='public', methods=['GET'], csrf=False)
     def get_all(self, **kw):
         return ClassController().get_all(kw)
+      
 
     @http.route('/tra_class/page/<int:init>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_by_page(self, init, **kw):

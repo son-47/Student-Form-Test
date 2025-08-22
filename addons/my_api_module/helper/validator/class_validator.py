@@ -4,15 +4,20 @@ class ClassValidator(BaseValidator):
     def __init__(self, data=None, model=None):
         super().__init__(data, model)
 
-    def _define_rules(self):
+    def define_rules(self):
         """Định nghĩa rules khác nhau cho CREATE và UPDATE"""
         
         # CREATE RULES - Tất cả field bắt buộc
         self.define_create_rules({
-            "code": ["required", "unique_value", "range_length:3,50"],
+            "code": [
+                "required": True, 
+                "unique": True, 
+                "min_length": 3,
+                "max_length":50,
+            ],
             "name": ["required", "unique_value", "range_length:3,50"],
-            "description": ["max_length:200"]
-        })
+            "description": ["max_length:200"]})
+        
         
         # UPDATE RULES - Không required, chỉ validation
         self.define_update_rules({
