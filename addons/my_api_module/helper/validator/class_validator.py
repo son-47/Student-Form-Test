@@ -1,31 +1,30 @@
 from .base_validator import BaseValidator
 
 class ClassValidator(BaseValidator):
-    def __init__(self, data=None, model=None):
-        super().__init__(data, model)
+    def __init__(self, data=None, model=None, modelFields2Labels=None):
+        super().__init__(data, model, modelFields2Labels)
 
     def define_rules(self):
-        """Định nghĩa rules khác nhau cho CREATE và UPDATE"""
+        """Định nghĩa rules"""
         
-        # CREATE RULES - Tất cả field bắt buộc
-        self.define_create_rules({
-            "code": [
-                "required": True, 
-                "unique": True, 
-                "min_length": 3,
-                "max_length":50,
-            ],
-            "name": ["required", "unique_value", "range_length:3,50"],
-            "description": ["max_length:200"]})
-        
-        
-        # UPDATE RULES - Không required, chỉ validation
-        self.define_update_rules({
-            "code": ["unique_value", "range_length:3,50"],  
-            "name": ["unique_value", "range_length:3,50"],   
-            "description": ["max_length:200"]
+        self.define_field_rules({
+            "code": {
+                "required": True,
+                "unique": True,
+                "min_length": 2,
+                "max_length": 50,
+            },
+            "name": {
+                "required": True,
+                "unique": True,
+                "min_length": 2,
+                "max_length": 100,
+            },
+            "description": {
+                "required": False,
+                "max_length": 500,
+            }
         })
-        
     # def constraint_validate(self):
     #     self.required('code')
     #     self.required('name')

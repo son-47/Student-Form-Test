@@ -1,30 +1,68 @@
 from .base_validator import BaseValidator
 
 class StudentValidator(BaseValidator): 
-    def __init__(self, data=None, model=None):
-        super().__init__(data, model)
+    def __init__(self, data=None, model=None, modelFields2Labels=None):
+        super().__init__(data, model, modelFields2Labels)
     
     def define_rules(self):
-        """Định nghĩa rules khác nhau cho CREATE và UPDATE"""
+        """Định nghĩa rules"""
         
-        # CREATE RULES 
-        self.define_create_rules({
-            "code": ["required", "unique_value", "range_length:3,50"],
-            "fullname": ["required", "range_length:3,50"],
-            "email": ["required", "unique_value", "email", "max_length:200"],
-            "username": ["required", "unique_value", "range_length:4,50"],
-            "password": ["required", "range_length:8,50"],
-            "dob": ["required", "dob"],
-            "sex": ["required"],
-            "facebook": ["facebook"],
-            "homecity": ["max_length:200"],
-            "hobbies": ["hobbies"],
-            "description": ["max_length:200"],
-            "hair_color": ["max_length:50"],
-            "address": ["max_length:200"],
-            "fattachment":["image", "max_size:"]
+        self.define_field_rules({
+            "code": {
+                "required": True,
+                "unique": True,
+                "min_length": 3,
+                "max_length": 50,
+            },
+            "fullname": {
+                "required": True,
+                "min_length": 2,
+                "max_length": 100,
+            },
+            "email": {
+                "required": True,
+                "unique": True,
+                "email": True,
+                "max_length": 255,
+            },
+            "username": {
+                "required": True,
+                "unique": True,
+                "min_length": 4,
+                "max_length": 50,
+            },
+            "password": {
+                "required": True,
+                "min_length": 6,
+                "max_length": 100,
+            },
+            "dob": {
+                "required": True,
+                "date": True,
+            },
+            "sex": {
+                "required": True,
+            },
+            "facebook": {
+                "facebook": True,
+            },
+            "hobbies": {
+                # "required": False,
+                "list": True,
+            },
+            "description": {
+                "max_length": 500,
+            },
+            "hair_color": {
+                "max_length": 50,
+            },
+            "address": {
+                "max_length": 200,
+            },
+            "homecity": {
+                "max_length": 200,
+            }
         })
-        
         # UPDATE RULES 
         # self.define_update_rules({
         #     "code": ["unique_value", "range_length:3,50"],  

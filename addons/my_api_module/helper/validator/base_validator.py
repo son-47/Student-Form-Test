@@ -4,12 +4,14 @@ import io
 from abc import ABC, abstractmethod
 from odoo.http import request, Response
 class BaseValidator(ABC):
-    def __init__(self, data=None, model=None):
+    def __init__(self, data=None, model=None, modelFields2Labels=None):
         self.data = data or {}  
         self.errors = {}
         self.model = model
-        self.create_rules = {}
-        self.update_rules = {}
+        self.modelFields2Labels = modelFields2Labels
+
+        self.rules = {}
+        self.message_templates = self.get_default_message_templates()
         self.define_rules()
 
     @abstractmethod
@@ -17,13 +19,38 @@ class BaseValidator(ABC):
         """định nghĩa rules"""
         pass
 
-    def define_create_rules(self, rules):
-        """Định nghĩa rules cho CREATE """
-        self.create_rules = rules
-
-    def define_update_rules(self, rules):
-        """Định nghĩa rules cho UPDATE """
-        self.update_rules = rules
+    def define_field_rules(self, rules):
+        """Định nghĩa rules cho từng field"""
+        self.rules = rules
+        
+    def get_default_message_templates(self):
+        """Định nghĩa message"""
+        return {
+            'required': '{} không được để trống.',
+            'unique': '{} đã tồn tại.',
+            'max_length': '{} tối đa {} ký tự.',
+            'min_length': '{} tối thiểu {} ký tự.',
+            'email': '{} không đúng định dạng email.',
+            'facebook': '{} không đúng định dạng Facebook.',
+            'date': '{} không đúng định dạng ngày sinh.',
+            'list': '{} không đúng định dạng sở thích.',
+            'number': '{} phải là số.',
+        }
+        
+    def get_field_label(self, field_name):
+        """
+        Lấy label hiển thị của field từ enum modelFields2Labels
+        """
+        if self.modelFields2Labels:
+            try:
+                # Tìm enum member có name = field_name
+                for field_enum in self.modelFields2Labels:
+                    if field_enum.name == field_name:
+                        return field_enum.value
+            except:
+                pass
+         
+        return field_name
 
     def get_errors(self):
         return self.errors
@@ -38,118 +65,102 @@ class BaseValidator(ABC):
     
     def has_errors(self):
         return len(self.errors) > 0
-
-    def validate_with_rules(self, rules, fields_to_validate=None):
-        """Validate với rules được chỉ định"""
+    
+    def validate_create_data(self, data):
+        """Validate cho CREATE - tất cả fields có rules"""
+        self.data = data
         self.errors = {}
         
-        # Nếu không chỉ định fields, validate tất cả
-        if fields_to_validate is None:
-            fields_to_validate = rules.keys()
-        
-        for field_name in fields_to_validate:
-            if field_name in rules:
-                self.validate_field(field_name, rules[field_name])
-
-    def validate_field(self, field_name, field_rules):
-        """Validate một field theo rules"""
-        for rule in field_rules:
-            self.apply_rule(field_name, rule)
-
-    def apply_rule(self, field_name, rule):
-        """Apply một rule cụ thể"""
-        # Tách lấy rule_type, rule_value
-        if ':' in rule:
-            rule_type, rule_value = rule.split(':', 1)
-        else:
-            rule_type = rule
-            rule_value = None
+        for field_name, field_rules in self.rules.items():
+            self._validate_field(field_name, field_rules, context='create')
             
-        # Apply rule dựa vào type
-        if rule_type == 'required':
-            self.check_required(field_name)
-        elif rule_type == 'max_length':
-            self.check_max_length(field_name, int(rule_value))
-        elif rule_type == 'unique_value':
-            except_id = int(rule_value) if rule_value else None
-            self.check_unique(field_name, except_id)
-        elif rule_type == 'email':
-            self.check_email(field_name)
-        elif rule_type == 'facebook':
-            self.check_facebook(field_name)
-        elif rule_type == 'dob':
-            self.check_dob(field_name)
-        elif rule_type == 'hobbies':
-            self.check_hobbies(field_name)
-        elif rule_type == 'number':
-            self.check_number(field_name)
-        elif rule_type == 'range_length':
-            min_val, max_val = map(int, rule_value.split(','))
-            self.check_range_length(field_name, min_val, max_val)
+        return self.get_errors()
+
+    def validate_update_data(self, data, entity_id):
+        """Validate cho UPDATE - chỉ fields có trong data"""
+        self.data = data
+        self.errors = {}
+        
+        # Chỉ validate fields có trong data
+        for field_name in data.keys():
+            if field_name in self.rules:
+                self._validate_field(field_name, self.rules[field_name], context='update', entity_id=entity_id)
+                
+        return self.get_errors()
+    
+    def validate_create_data(self, data):
+        """Validate cho CREATE - tất cả fields có rules"""
+        self.data = data
+        self.errors = {}
+        
+        for field_name, field_rules in self.rules.items():
+            self._validate_field(field_name, field_rules, context='create')
+            
+        return self.get_errors()
+
+    def validate_update_data(self, data, entity_id):
+        """Validate cho UPDATE - chỉ fields có trong data"""
+        self.data = data
+        self.errors = {}
+        
+        # Chỉ validate fields có trong data
+        for field_name in data.keys():
+            if field_name in self.rules:
+                self._validate_field(field_name, self.rules[field_name], context='update', entity_id=entity_id)
+                
+        return self.get_errors()
+    
+    def _validate_field(self, field_name, field_rules, context='create', entity_id=None):
+        """Validate một field theo rules"""
+        field_label = self.get_field_label(field_name)
+        
+        for rule_type, rule_config in field_rules.items():
+            if not rule_config:  # Skip nếu rule = False hoặc None
+                continue
+                
+            # Skip required validation cho update context
+            if rule_type == 'required' and context == 'update':
+                continue
+                
+            self.apply_rule(field_name, field_label, rule_type, rule_config, entity_id)
+
+    def apply_rule(self, field_name, field_label, rule_type, rule_config, entity_id=None):
+        """Apply một rule cụ thể"""
+        if rule_type == 'required' and rule_config:
+            self.check_required(field_name, field_label)
+            
+        elif rule_type == 'unique' and rule_config:
+            self.check_unique(field_name, field_label, entity_id)
+            
+        elif rule_type == 'max_length' and rule_config:
+            self.check_max_length(field_name, field_label, rule_config)
+            
+        elif rule_type == 'min_length' and rule_config:
+            self.check_min_length(field_name, field_label, rule_config)
+            
+        elif rule_type == 'email' and rule_config:
+            self.check_email(field_name, field_label)
+            
+        elif rule_type == 'facebook' and rule_config:
+            self.check_facebook(field_name, field_label)
+            
+        elif rule_type == 'date' and rule_config:
+            self.check_date(field_name, field_label)
+            
+        elif rule_type == 'list' and rule_config:
+            self.check_list(field_name, field_label)
+        
+        elif rule_type == 'number' and rule_config:
+            self.check_number(field_name, field_label)
 
     # Validation methods
-    def check_required(self, field):
+    def check_required(self, field, field_label):
         value = self.data.get(field)
         if value is None or str(value).strip() == "":
-            self.add_error(field, f"{field} bắt buộc phải có.")
+            message = self.message_templates['required'].format(field_label)
+            self.add_error(field, message)
 
-    def check_max_length(self, field, max_length):
-        value = self.data.get(field)
-        if value is None:
-            return
-            
-        value_str = str(value).strip()
-        if len(value_str) > max_length:
-            self.add_error(field, f"{field} tối đa {max_length} ký tự.")
-
-    def check_min_length(self, field, min_length):
-        value = self.data.get(field)
-        if value is None:
-            return
-        value_str =str(value).strip()
-        if len(value_str) < min_length:
-            self.add_error(field, f"{field} tối thiểu {min_length} ký tự")
-
-    def check_range_length(self, field, min_length, max_length):
-        value = self.data.get(field)
-        if value is None:
-            return
-        value_str = str(value).strip()
-        if not (min_length <= len(value_str) <= max_length):
-            self.add_error(field, f"{field} phải có độ dài từ {min_length} đến {max_length} ký tự.")
-    
-    def check_min(self, field, min_value):
-        value = self.data.get(field)
-        if value is None:
-            return
-        value = float(value)
-        if value < min_value:
-            self.add_error(field, f"{field} phải lớn hơn {min_value}.")
-            
-    def check_max(self, field, max_value):
-        value = self.data.get(field)
-        if value is None:
-            return
-        value = float(value)
-        if value > max_value:
-            self.add_error(field, f"{field} phải nhỏ hơn {max_value}.")
-
-    def check_range(self, field, min_value, max_value):
-        value = self.data.get(field)
-        if value is None:
-            return
-        value = float(value)
-        if not (min_value <= value <= max_value):
-            self.add_error(field, f"{field} phải nằm trong khoảng [{min_value}, {max_value}].")
-    
-    def check_number(self, field):
-        value = self.data.get(field)
-        if value is None:
-            return
-        if not isinstance(value, float):
-            self.add_error(field,f"{field} phải là số")
-
-    def check_unique(self, field, except_id=None):
+    def check_unique(self, field, field_label, except_id=None):
         value = self.data.get(field)
         if value is None or not str(value).strip():
             return 
@@ -159,74 +170,123 @@ class BaseValidator(ABC):
         if except_id:
             domain.append(('id', '!=', except_id))
         if self.model.search(domain, limit=1):
-            self.add_error(field, f"{field} đã tồn tại.")
+            message = self.message_templates['unique'].format(field_label)
+            self.add_error(field, message)
+
+    def check_max_length(self, field, field_label, max_length):
+        value = self.data.get(field)
+        if value is None:
+            return
             
+        value_str = str(value).strip()
+        if len(value_str) > max_length:
+            message = self.message_templates['max_length'].format(field_label, max_length)
+            self.add_error(field, message)
+
+    def check_min_length(self, field, field_label, min_length):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value_str =str(value).strip()
+        if len(value_str) < min_length:
+            message = self.message_templates['min_length'].format(field_label, min_length)
+            self.add_error(field, message)
+
+    # def check_range_length(self, field, field_label, min_length, max_length):
+    #     value = self.data.get(field)
+    #     if value is None:
+    #         return
+    #     value_str = str(value).strip()
+    #     if not (min_length <= len(value_str) <= max_length):
+    #         self.add_error(field, f"{field} phải có độ dài từ {min_length} đến {max_length} ký tự.")
+
+    def check_min(self, field, field_label, min_value):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value = float(value)
+        if value < min_value:
+            message = self.message_templates['min'].format(field_label, min_value)
+            self.add_error(field, message)
+
+    def check_max(self, field, field_label, max_value):
+        value = self.data.get(field)
+        if value is None:
+            return
+        value = float(value)
+        if value > max_value:
+            message = self.message_templates['max'].format(field_label, max_value)
+            self.add_error(field, message)
+
+    # def check_range(self, field, min_value, max_value):
+    #     value = self.data.get(field)
+    #     if value is None:
+    #         return
+    #     value = float(value)
+    #     if not (min_value <= value <= max_value):
+    #         self.add_error(field, f"{field} phải nằm trong khoảng [{min_value}, {max_value}].")
+    
+    def check_number(self, field):
+        value = self.data.get(field)
+        if value is None:
+            return
+        if not isinstance(value, float):
+            message = self.message_templates['number'].format(field_label)
+            self.add_error(field, message)
+        
             
-    def check_email(self, field):
+    def check_email(self, field, field_label):
         value = self.data.get(field, '')
         if not value:
             return
             
         regex_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,7}\b'
         if not re.match(regex_email, value):
-            self.add_error(field, "Email không đúng định dạng.")
+            message = self.message_templates['email'].format(field_label)
+            self.add_error(field, message)
     
-    def check_facebook(self, field):
+    def check_facebook(self, field, field_label):
         value = self.data.get(field, '')
         if not value:
             return
             
         regex_facebook = r'^(https?:\/\/)?(www\.)?facebook\.com\/[A-Za-z0-9\.]+\/?$'
         if not re.match(regex_facebook, value):
-            self.add_error(field, "Facebook không đúng định dạng.")
-        
-    def check_dob(self, field):
+            message = self.message_templates['facebook'].format(field_label)
+            self.add_error(field, message)
+
+    def check_date(self, field, field_label):
         value = self.data.get(field, '')
         if not value:
             return
             
-        regex_dob = r'^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$'
-        if not re.match(regex_dob, value):
-            self.add_error(field, "Ngày sinh không đúng định dạng.")
-            
-    def check_hobbies(self, field):
+        regex_date = r'^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$'
+        if not re.match(regex_date, value):
+            message = self.message_templates['date'].format(field_label)
+            self.add_error(field, message)
+
+    def check_list(self, field, field_label):
         value = self.data.get(field)
         if not value :
             return
                 
         if not isinstance(value, str) or len(value) != 57:
-            self.add_error(field, "Hobbies phải là ký tự có độ dài 57.")
+            message = self.message_templates['list'].format(field_label)
+            self.add_error(field, message)
         else:
-            regex_hobbies = r'^(0|1)(,(0|1)){28}$'
-            if not re.match(regex_hobbies, value):
-                self.add_error(field, " không đúng định dạng.")
+            regex_list = r'^(0|1)(,(0|1)){28}$'
+            if not re.match(regex_list, value):
+                message = self.message_templates['list'].format(field_label)
+                self.add_error(field, message)
+
+  
     
-
-    def validate_create_data(self, data):
-        """Validate cho CREATE - tất cả fields với create_rules"""
-        self.data = data
-        self.validate_with_rules(self.create_rules)
-        return self.get_errors()
-
-    def validate_update_data(self, data, entity_id):
-        """Validate cho UPDATE - chỉ fields có trong data với update_rules"""
-        self.data = data
-        
-        # Update unique_value rules với except_id
-        self.prepare_update_rules(entity_id)
-        
-        # Chỉ validate fields có trong data
-        fields_to_validate = data.keys()
-        self.validate_with_rules(self.update_rules, fields_to_validate)
-        return self.get_errors()
-
-    
-    def prepare_update_rules(self, entity_id):
-        """Chuẩn bị update rules với id được gọi cho unique validation"""
-        for field_name, field_rules in self.update_rules.items():
-            for i, rule in enumerate(field_rules):
-                if rule == 'unique_value':
-                    self.update_rules[field_name][i] = f'unique_value:{entity_id}'
+    # def prepare_update_rules(self, entity_id):
+    #     """Chuẩn bị update rules với id được gọi cho unique validation"""
+    #     for field_name, field_rules in self.update_rules.items():
+    #         for i, rule in enumerate(field_rules):
+    #             if rule == 'unique_value':
+    #                 self.update_rules[field_name][i] = f'unique_value:{entity_id}'
                        
                     
 
