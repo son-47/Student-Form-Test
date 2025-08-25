@@ -26,21 +26,22 @@ class StudentAlias2Fields(Enum):
 
 class StudentFields2Labels(Enum):
     # id = "ID"
-    code = "Ma hoc sinh"
-    fullname = "Ten hoc sinh"
-    dob = "Ngay sinh"
-    sex = "Gioi tinh"
-    homecity = "Que quan"
-    address = "Dia chi"
-    hobbies = "So thich"
-    hair_color = "Mau toc"
+    code = "Mã học sinh"
+    fullname = "Tên học sinh"
+    dob = "Ngày sinh"
+    sex = "Giới tính"
+    homecity = "Quê quán"
+    address = "Địa chỉ"
+    hobbies = "Sở thích"
+    hair_color = "Màu tóc"
     email = "Email"
     facebook = "Facebook"
-    username = "Ten dang nhap"
-    password = "Mat khau"
-    description = "Mo ta"
-    attachment = "Duong dan anh"
-    attachment_url = "Link anh"
+    username = "Tên đăng nhập"
+    password = "Mật khẩu"
+    description = "Mô tả"
+    attachment = "Đường dẫn ảnh"
+    attachment_url = "Link ảnh"
+    fattachment = "File upload"
     # create_date = 'Ngày tạo'
     # write_date = 'Ngày cập nhật'
     # create_uid = 'Mã Người tạo'
@@ -65,7 +66,7 @@ class Student(models.Model):
     email = fields.Char(string='Email',size = 200, required = True)                                 # Email liên hệ
     facebook = fields.Char(string='Facebook')                                          # Link Facebook
     username = fields.Char(string='Username',required= True)                           # Tên tài khoản
-    password = fields.Char(string='Password', size = 255, required = True)                           # Mật khẩu 
+    password = fields.Char(string='Password', size = 100, required = True)                           # Mật khẩu 
     description = fields.Text(string='Description', size = 200)   
  # Ghi chú
     attachment = fields.Char(string='Attachment')                     # File đính kèm (ảnh/hồ sơ)

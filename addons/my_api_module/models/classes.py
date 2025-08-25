@@ -13,9 +13,10 @@ class ClassAlias2Fields(Enum):
 
 class ClassFields2Labels(Enum):
     id = "ID"
-    code = "Ma Lop"
-    name = "Ten Lop"
-    description = "Mo ta"
+    code = "Mã Lớp"
+    name = "Tên Lớp"
+    description = "Mô Tả"
+    attachment = "Đường dẫn ảnh"
     # create_date = 'Ngày tạo'
     # write_date = 'Ngày cập nhật'
     # create_uid = 'Mã Người tạo'

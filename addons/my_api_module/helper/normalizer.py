@@ -4,22 +4,6 @@ class Normalizer():
     def __init__(self):
         pass
     
-    @staticmethod
-    def encode_hobbies_binary_string_to_bitmask(self, hobbies_input):
-        """
-        Convert hobbies input to a bitmask (integer).
-        - If input is a binary string (e.g., '0,1,1,0,...'), validate and convert to bitmask.
-        - If input is a comma-separated list of hobbies (e.g., 'Badminton,Basketball'), convert to binary string then to bitmask.
-        """
-     
-        bits = list(map(int, hobbies_input.strip().split(',')))
-        bitmask = 0 
-        for i, value in enumerate(bits):
-            if value == 1:
-                bitmask |= (1 << i) # giữ nguyên hoặc bằng 2^i
-        return bitmask
-
-    
 
     @staticmethod
     def getColumnFromAlias(columnlist, ModelAlias2Fields):
@@ -87,6 +71,7 @@ class Normalizer():
             res = {}
             for field, value in item.items():
                 if field not in labels2Fields.keys():
+                    _logger.error(f"Cột '{field}' trong file KHÔNG khớp với labels2Fields: {list(labels2Fields.keys())}")
                     return "Danh sach cot khong hop le", None
                 res[labels2Fields[field]] = value
             return None, res

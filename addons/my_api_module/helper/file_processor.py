@@ -51,6 +51,7 @@ class ImageFileProcessor(FileProcessor):
         #     return {}
         
         try:
+            file = request.httprequest.files.get(file_key)
             # Upload image
             attachment_url, attachment = self.file_uploader.upload(file, self.entity_type, entity_id)
             
