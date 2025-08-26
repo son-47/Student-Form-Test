@@ -282,10 +282,10 @@ class BaseValidator():
         file = request.httprequest.files.get(field)
         if not file or not file.filename:
             return  # Không có file thì bỏ qua
-            
-        file.seek(0, 2)  # Go to end
+
+        file.seek(0, 2)  # ĐI đến cuối file
         size = file.tell()
-        file.seek(0)     # Reset to beginning
+        file.seek(0)     
         
         max_size_bytes = max_size_mb * 1024 * 1024
         if size > max_size_bytes:
@@ -304,7 +304,7 @@ class BaseValidator():
         return self.get_errors()
 
     def validate_update_data(self, data, entity_id = None):
-        """Validate cho UPDATE - chỉ fields có trong data"""
+        """Validate chỉ fields có trong data (update, import)"""
         self.data = data
         self.errors = {}
         
