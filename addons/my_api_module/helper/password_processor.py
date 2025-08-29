@@ -12,23 +12,22 @@ class PasswordHelper:
         )
         return hash_password.decode('utf-8')
 
-    # @staticmethod
-    # def verify_password(password, hashed_password):
-    #     """
-    #     Verify password của user với hashed_password
-    #     """
-    #     try:
-    #         password_bytes = password.encode('utf-8')
-    #         check = bcrypt.checkpw(
-    #             password=password_bytes,
-    #             hashed_password=hashed_password
-    #         )
-    #         return check
-    #     except Exception as e:
-    #         _logger.error(f"Error verifying password: {e}")
-    #         return False
+    @staticmethod
+    def verify_password(password, hashed_password):
+        """
+        Verify password của user với hashed_password
+        """
+        try:
+            password_bytes = password.encode('utf-8')
+            check = bcrypt.checkpw(
+                password=password_bytes,
+                hashed_password=hashed_password.encode('utf-8')
+            )
+            return check
+        except Exception as e:
+            _logger.error(f"Error verifying password: {e}")
+            return False
         
-    # @staticmethod
     # @staticmethod
     # def is_hashed(password):
     #     """

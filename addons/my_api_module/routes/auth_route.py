@@ -13,8 +13,8 @@ class AuthRoute(http.Controller):
 
     @http.route("/auth_test/register", type="http", auth="public", methods=["POST"], csrf=False)
     def register(self):
-        return AuthController('user').register()
+        return AuthController('my_api_module.user').register()
 
     @http.route("/auth_test/login", type="http", auth="public", methods=["POST"], csrf=False)
     def login(self):
-        return AuthController('user').login()
+        return AuthController('my_api_module.user').login()

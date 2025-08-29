@@ -58,7 +58,7 @@ class LocalFileUploader(FileUploader):
         
         # Trả về (attachment_url, attachment)
         attachment_url = f"{self.base_url}/{sub_folder}/{filename}"
-        attachment = f"{sub_folder}/{filename}"  # Đường dẫn tương đối
+        attachment = f"{sub_folder}/{filename}"  
 
         _logger.info(f"[LOCAL] File uploaded - URL: {attachment_url}, Path: {attachment}")
         return attachment_url, attachment

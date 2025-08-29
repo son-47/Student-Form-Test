@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_my_api_module_student,access_my_api_module_student,model_my_api_module_student,,1,1,1,1
 access_my_api_module_classes,access_my_api_module_classes,model_my_api_module_classes,,1,1,1,1
+access_my_api_module_user,access_my_api_module_user,model_my_api_module_user,,1,1,1,1

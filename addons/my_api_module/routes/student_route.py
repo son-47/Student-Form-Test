@@ -5,6 +5,7 @@ from ..helper.upload_config import get_upload_config
 import logging
 _logger = logging.getLogger(__name__)
 from ..controllers.Student_controller_test import StudentController
+from ..middlewares.verify_token import verify_token
 import mimetypes
 
 class StudentRoute(http.Controller):
@@ -34,6 +35,7 @@ class StudentRoute(http.Controller):
             return request.not_found()
         
     @http.route('/tra_student', type='http', auth='public', methods=['GET'], csrf=False)
+    @verify_token
     def get_all(self, **kw):
         return StudentController().get_all(kw)
 

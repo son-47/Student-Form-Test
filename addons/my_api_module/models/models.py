@@ -28,18 +28,18 @@ columnlist = "co , na,  de"
 import bcrypt
 
 # Password to Hash
-my_password = 143534534534543
-mypassword = str(my_password).encode('utf-8')
-# Generating Salt
-salt = bcrypt.gensalt()
+# my_password = 143534534534543
+# mypassword = str(my_password).encode('utf-8')
+# # Generating Salt
+# salt = bcrypt.gensalt()
 
-# Hashing Password
-hash_password = bcrypt.hashpw(
-    password=mypassword,
-    salt=salt
-)
+# # Hashing Password
+# hash_password = bcrypt.hashpw(
+#     password=mypassword,
+#     salt=salt
+# )
 
-print(f"Actual Password: {mypassword.decode('utf-8')}")
-# Print Hashed Password
-print(f"Hashed Password: {hash_password.decode('utf-8')}")
+# print(f"Actual Password: {mypassword.decode('utf-8')}")
+# # Print Hashed Password
+# print(f"Hashed Password: {hash_password.decode('utf-8')}")
 
